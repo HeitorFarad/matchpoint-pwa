@@ -2,21 +2,35 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MapPin, Calendar, Clock, Minus, Plus, UserPlus } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
+import { useAuth } from '../contexts/AuthContext'
+import { criarPelada } from '../services/firestore'
 
 const niveis = ['Iniciante', 'Intermediário', 'Avançado', 'Aberto']
 
 export default function CriarPelada() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [local, setLocal] = useState('')
   const [data, setData] = useState('')
   const [horario, setHorario] = useState('')
   const [limite, setLimite] = useState(0)
   const [nivel, setNivel] = useState('')
   const [convidados, setConvidados] = useState('')
+  const [salvando, setSalvando] = useState(false)
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
-    navigate('/')
+    if (salvando) return
+    setSalvando(true)
+    try {
+      await criarPelada(
+        { nome: local, local, data, horario, vagas: limite, nivel },
+        user,
+      )
+      navigate('/')
+    } finally {
+      setSalvando(false)
+    }
   }
 
   return (
@@ -101,8 +115,8 @@ export default function CriarPelada() {
           </div>
         </div>
 
-        <button type="submit" className="btn-primary" style={{ marginTop: 8 }}>
-          Criar pelada 🏐
+        <button type="submit" className="btn-primary" style={{ marginTop: 8 }} disabled={salvando}>
+          {salvando ? 'Criando...' : 'Criar pelada 🏐'}
         </button>
       </form>
     </div>

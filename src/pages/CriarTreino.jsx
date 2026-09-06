@@ -4,11 +4,15 @@ import { Trophy, MapPin, Minus, Plus, Search } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import Avatar from '../components/Avatar'
 import { friends } from '../data/mock'
+import { useAuth } from '../contexts/AuthContext'
+import { criarTreino } from '../services/firestore'
 
 const diasSemana = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
+const diasSemanaCompletos = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 export default function CriarTreino() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [nome, setNome] = useState('')
   const [local, setLocal] = useState('')
   const [diasAtivos, setDiasAtivos] = useState([])
@@ -20,6 +24,7 @@ export default function CriarTreino() {
   const [lembreteUnidade, setLembreteUnidade] = useState('horas')
   const [busca, setBusca] = useState('')
   const [participantes, setParticipantes] = useState([])
+  const [salvando, setSalvando] = useState(false)
 
   function toggleDia(i) {
     setDiasAtivos((list) =>
@@ -42,9 +47,30 @@ export default function CriarTreino() {
       )
     : []
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
-    navigate('/')
+    if (salvando) return
+    setSalvando(true)
+    try {
+      await criarTreino(
+        {
+          nome,
+          local,
+          dias: diasAtivos.map((i) => diasSemanaCompletos[i]),
+          inicio,
+          fim,
+          vagas,
+          lembrete: lembreteOn
+            ? { valor: Number(lembreteValor) || 0, unidade: lembreteUnidade }
+            : null,
+          participantesFixos: participantes.map((p) => ({ id: p.id, name: p.name })),
+        },
+        user,
+      )
+      navigate('/')
+    } finally {
+      setSalvando(false)
+    }
   }
 
   return (
@@ -213,8 +239,8 @@ export default function CriarTreino() {
           )}
         </div>
 
-        <button type="submit" className="btn-primary" style={{ marginTop: 8 }}>
-          Criar treino fixo 📅
+        <button type="submit" className="btn-primary" style={{ marginTop: 8 }} disabled={salvando}>
+          {salvando ? 'Criando...' : 'Criar treino fixo 📅'}
         </button>
       </form>
     </div>

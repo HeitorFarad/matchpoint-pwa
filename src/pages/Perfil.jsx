@@ -2,10 +2,13 @@ import { useNavigate } from 'react-router-dom'
 import { Volleyball, CalendarCheck } from 'lucide-react'
 import Card from '../components/Card'
 import Badge from '../components/Badge'
-import { currentUser, historico } from '../data/mock'
+import { useAuth } from '../contexts/AuthContext'
+import { historico } from '../data/mock'
 
 export default function Perfil() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const nome = user.displayName || user.email
   const presenca = Math.round(
     (historico.filter((h) => h.status === 'Confirmado').length / historico.length) * 100,
   )
@@ -24,15 +27,12 @@ export default function Perfil() {
             color: '#fff',
           }}
         >
-          {currentUser.name[0]}
+          {nome[0]?.toUpperCase()}
         </div>
-        <h1 style={{ fontSize: 19, marginBottom: 2 }}>{currentUser.name}</h1>
-        <p style={{ margin: 0, fontSize: 13, opacity: 0.9 }}>
-          @{currentUser.username} · {currentUser.city}
-        </p>
-        <div style={{ marginTop: 10 }}>
-          <span className="badge badge-white">{currentUser.level}</span>
-        </div>
+        <h1 style={{ fontSize: 19, marginBottom: 2 }}>{nome}</h1>
+        {user.displayName && (
+          <p style={{ margin: 0, fontSize: 13, opacity: 0.9 }}>{user.email}</p>
+        )}
       </div>
 
       <div className="app-content">

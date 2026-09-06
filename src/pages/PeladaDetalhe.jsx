@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, UserPlus, Pencil, Share2, XCircle, Crown, MapPin, Calendar, Clock, Minus, Plus } from 'lucide-react'
 import Avatar from '../components/Avatar'
@@ -6,21 +6,53 @@ import Card from '../components/Card'
 import Badge from '../components/Badge'
 import Modal from '../components/Modal'
 import InviteFriendsModal from '../components/InviteFriendsModal'
-import { getPeladaById, currentUser } from '../data/mock'
+import { useAuth } from '../contexts/AuthContext'
+import { getPelada, atualizarPelada } from '../services/firestore'
 
 export default function PeladaDetalhe() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const pelada = getPeladaById(id)
-  const [confirmados, setConfirmados] = useState(pelada?.confirmados ?? [])
-  const [local, setLocal] = useState(pelada?.local ?? '')
-  const [data, setData] = useState(pelada?.data ?? '')
-  const [horario, setHorario] = useState(pelada?.horario ?? '')
-  const [vagas, setVagas] = useState(pelada?.vagas ?? 0)
+  const { user } = useAuth()
+  const [pelada, setPelada] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [confirmados, setConfirmados] = useState([])
+  const [nome, setNome] = useState('')
+  const [local, setLocal] = useState('')
+  const [data, setData] = useState('')
+  const [horario, setHorario] = useState('')
+  const [vagas, setVagas] = useState(0)
 
   const [modalConvidar, setModalConvidar] = useState(false)
   const [modalEditar, setModalEditar] = useState(false)
   const [modalCancelar, setModalCancelar] = useState(false)
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false)
+
+  useEffect(() => {
+    let ativo = true
+    setLoading(true)
+    getPelada(id).then((res) => {
+      if (!ativo) return
+      setPelada(res)
+      setConfirmados(res?.confirmados ?? [])
+      setNome(res?.nome ?? '')
+      setLocal(res?.local ?? '')
+      setData(res?.data ?? '')
+      setHorario(res?.horario ?? '')
+      setVagas(res?.vagas ?? 0)
+      setLoading(false)
+    })
+    return () => {
+      ativo = false
+    }
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="app-content">
+        <p className="empty-state">Carregando...</p>
+      </div>
+    )
+  }
 
   if (!pelada) {
     return (
@@ -30,21 +62,33 @@ export default function PeladaDetalhe() {
     )
   }
 
-  const souOrganizador = pelada.organizadorId === currentUser.id
-  const jaConfirmado = confirmados.some((c) => c.id === currentUser.id)
+  const souOrganizador = pelada.organizadorId === user.uid
+  const jaConfirmado = confirmados.some((c) => c.id === user.uid)
   const lotada = confirmados.length >= vagas
 
   function toggleConfirmacao() {
     if (jaConfirmado) {
-      setConfirmados((list) => list.filter((c) => c.id !== currentUser.id))
+      setConfirmados((list) => list.filter((c) => c.id !== user.uid))
     } else {
-      setConfirmados((list) => [...list, { id: currentUser.id, name: currentUser.name }])
+      setConfirmados((list) => [...list, { id: user.uid, name: user.displayName || user.email }])
     }
   }
 
   function confirmarCancelamento() {
     setModalCancelar(false)
     navigate('/')
+  }
+
+  async function salvarEdicaoPelada() {
+    if (salvandoEdicao) return
+    setSalvandoEdicao(true)
+    try {
+      await atualizarPelada(pelada.id, { nome, local, data, horario, vagas })
+      setPelada((p) => ({ ...p, nome, local, data, horario, vagas }))
+      setModalEditar(false)
+    } finally {
+      setSalvandoEdicao(false)
+    }
   }
 
   return (
@@ -111,7 +155,7 @@ export default function PeladaDetalhe() {
           ))}
         </Card>
 
-        {pelada.pendentes.length > 0 && (
+        {(pelada.pendentes || []).length > 0 && (
           <Card title={`Convidados pendentes (${pelada.pendentes.length})`}>
             {pelada.pendentes.map((c) => (
               <div className="list-row" key={c.id}>
@@ -141,10 +185,16 @@ export default function PeladaDetalhe() {
       <InviteFriendsModal
         open={modalConvidar}
         onClose={() => setModalConvidar(false)}
-        excludeIds={[...confirmados.map((c) => c.id), ...pelada.pendentes.map((c) => c.id)]}
+        excludeIds={[...confirmados.map((c) => c.id), ...(pelada.pendentes || []).map((c) => c.id)]}
       />
 
       <Modal open={modalEditar} onClose={() => setModalEditar(false)} title="Editar pelada">
+        <div className="field">
+          <label>Nome da pelada</label>
+          <div className="input-wrap">
+            <input value={nome} onChange={(e) => setNome(e.target.value)} />
+          </div>
+        </div>
         <div className="field">
           <label>Local</label>
           <div className="input-wrap">
@@ -188,9 +238,10 @@ export default function PeladaDetalhe() {
           type="button"
           className="btn-primary"
           style={{ marginTop: 8 }}
-          onClick={() => setModalEditar(false)}
+          onClick={salvarEdicaoPelada}
+          disabled={salvandoEdicao}
         >
-          Salvar alterações
+          {salvandoEdicao ? 'Salvando...' : 'Salvar alterações'}
         </button>
       </Modal>
 

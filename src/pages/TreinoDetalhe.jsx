@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, UserPlus, MoreVertical, Pencil, XCircle } from 'lucide-react'
 import Avatar from '../components/Avatar'
@@ -6,17 +6,44 @@ import Card from '../components/Card'
 import Badge from '../components/Badge'
 import Modal from '../components/Modal'
 import InviteFriendsModal from '../components/InviteFriendsModal'
-import { getTreinoById } from '../data/mock'
+import { getTreino, atualizarTreino } from '../services/firestore'
 
 export default function TreinoDetalhe() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const treino = getTreinoById(id)
+  const [treino, setTreino] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   const [modalConvidar, setModalConvidar] = useState(false)
   const [modalMenu, setModalMenu] = useState(false)
   const [modalEditar, setModalEditar] = useState(false)
   const [modalCancelar, setModalCancelar] = useState(false)
+  const [editNome, setEditNome] = useState('')
+  const [editLocal, setEditLocal] = useState('')
+  const [editInicio, setEditInicio] = useState('')
+  const [editFim, setEditFim] = useState('')
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false)
+
+  useEffect(() => {
+    let ativo = true
+    setLoading(true)
+    getTreino(id).then((res) => {
+      if (!ativo) return
+      setTreino(res)
+      setLoading(false)
+    })
+    return () => {
+      ativo = false
+    }
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="app-content">
+        <p className="empty-state">Carregando...</p>
+      </div>
+    )
+  }
 
   if (!treino) {
     return (
@@ -26,11 +53,37 @@ export default function TreinoDetalhe() {
     )
   }
 
-  const vagaAberta = treino.cancelaram[0]
+  const dias = treino.dias || []
+  const confirmadosTreino = treino.confirmados || []
+  const cancelaram = treino.cancelaram || []
+  const aguardando = treino.aguardando || []
+  const vagaAberta = cancelaram[0]
 
   function confirmarCancelamento() {
     setModalCancelar(false)
     navigate('/')
+  }
+
+  function abrirEdicaoTreino() {
+    setEditNome(treino.nome)
+    setEditLocal(treino.local)
+    setEditInicio(treino.inicio)
+    setEditFim(treino.fim)
+    setModalMenu(false)
+    setModalEditar(true)
+  }
+
+  async function salvarEdicaoTreino() {
+    if (salvandoEdicao) return
+    setSalvandoEdicao(true)
+    try {
+      const dados = { nome: editNome, local: editLocal, inicio: editInicio, fim: editFim }
+      await atualizarTreino(treino.id, dados)
+      setTreino((t) => ({ ...t, ...dados }))
+      setModalEditar(false)
+    } finally {
+      setSalvandoEdicao(false)
+    }
   }
 
   return (
@@ -47,11 +100,11 @@ export default function TreinoDetalhe() {
         <div style={{ textAlign: 'center', paddingTop: 4 }}>
           <h1 style={{ fontSize: 19, marginBottom: 6 }}>{treino.nome}</h1>
           <p style={{ margin: 0, fontSize: 13, opacity: 0.9 }}>
-            {treino.dias.join(' e ')} · {treino.inicio}-{treino.fim} · {treino.local}
+            {dias.join(' e ')} · {treino.inicio}-{treino.fim} · {treino.local}
           </p>
           <div className="row" style={{ justifyContent: 'center', gap: 8, marginTop: 12 }}>
             <span className="badge badge-white">
-              {treino.confirmados.length}/{treino.vagas} confirmados
+              {confirmadosTreino.length}/{treino.vagas} confirmados
             </span>
             <span className="badge badge-white">Hoje</span>
           </div>
@@ -87,8 +140,8 @@ export default function TreinoDetalhe() {
           </div>
         )}
 
-        <Card title={`Confirmados (${treino.confirmados.length})`}>
-          {treino.confirmados.map((c) => (
+        <Card title={`Confirmados (${confirmadosTreino.length})`}>
+          {confirmadosTreino.map((c) => (
             <div className="list-row" key={c.id}>
               <Avatar name={c.name} size={38} />
               <div className="info">
@@ -102,9 +155,9 @@ export default function TreinoDetalhe() {
           ))}
         </Card>
 
-        {treino.cancelaram.length > 0 && (
-          <Card title={`Cancelaram (${treino.cancelaram.length})`}>
-            {treino.cancelaram.map((c) => (
+        {cancelaram.length > 0 && (
+          <Card title={`Cancelaram (${cancelaram.length})`}>
+            {cancelaram.map((c) => (
               <div className="list-row" key={c.id}>
                 <Avatar name={c.name} size={38} muted />
                 <div className="info">
@@ -118,9 +171,9 @@ export default function TreinoDetalhe() {
           </Card>
         )}
 
-        {treino.aguardando.length > 0 && (
-          <Card title={`Aguardando resposta (${treino.aguardando.length})`}>
-            {treino.aguardando.map((c) => (
+        {aguardando.length > 0 && (
+          <Card title={`Aguardando resposta (${aguardando.length})`}>
+            {aguardando.map((c) => (
               <div className="list-row" key={c.id}>
                 <Avatar name={c.name} size={38} muted />
                 <div className="info">
@@ -138,17 +191,12 @@ export default function TreinoDetalhe() {
       <InviteFriendsModal
         open={modalConvidar}
         onClose={() => setModalConvidar(false)}
-        excludeIds={treino.confirmados.map((c) => c.id)}
+        excludeIds={confirmadosTreino.map((c) => c.id)}
       />
 
       <Modal open={modalMenu} onClose={() => setModalMenu(false)} variant="center">
         <div className="action-sheet">
-          <button
-            onClick={() => {
-              setModalMenu(false)
-              setModalEditar(true)
-            }}
-          >
+          <button onClick={abrirEdicaoTreino}>
             <Pencil size={16} /> Editar treino
           </button>
           <button
@@ -167,26 +215,30 @@ export default function TreinoDetalhe() {
         <div className="field">
           <label>Nome do treino</label>
           <div className="input-wrap">
-            <input defaultValue={treino.nome} />
+            <input value={editNome} onChange={(e) => setEditNome(e.target.value)} />
           </div>
         </div>
         <div className="field">
           <label>Local</label>
           <div className="input-wrap">
-            <input defaultValue={treino.local} />
+            <input value={editLocal} onChange={(e) => setEditLocal(e.target.value)} />
           </div>
         </div>
         <div className="field-row">
           <div className="field">
             <label>Início</label>
             <div className="input-wrap">
-              <input type="time" defaultValue={treino.inicio} />
+              <input
+                type="time"
+                value={editInicio}
+                onChange={(e) => setEditInicio(e.target.value)}
+              />
             </div>
           </div>
           <div className="field">
             <label>Fim</label>
             <div className="input-wrap">
-              <input type="time" defaultValue={treino.fim} />
+              <input type="time" value={editFim} onChange={(e) => setEditFim(e.target.value)} />
             </div>
           </div>
         </div>
@@ -194,9 +246,10 @@ export default function TreinoDetalhe() {
           type="button"
           className="btn-primary"
           style={{ marginTop: 8 }}
-          onClick={() => setModalEditar(false)}
+          onClick={salvarEdicaoTreino}
+          disabled={salvandoEdicao}
         >
-          Salvar alterações
+          {salvandoEdicao ? 'Salvando...' : 'Salvar alterações'}
         </button>
       </Modal>
 
