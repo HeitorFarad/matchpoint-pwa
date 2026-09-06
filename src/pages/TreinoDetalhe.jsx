@@ -6,7 +6,7 @@ import Card from '../components/Card'
 import Badge from '../components/Badge'
 import Modal from '../components/Modal'
 import InviteFriendsModal from '../components/InviteFriendsModal'
-import { getTreino, atualizarTreino } from '../services/firestore'
+import { getTreino, atualizarTreino, deletarTreino } from '../services/firestore'
 
 export default function TreinoDetalhe() {
   const { id } = useParams()
@@ -23,6 +23,7 @@ export default function TreinoDetalhe() {
   const [editInicio, setEditInicio] = useState('')
   const [editFim, setEditFim] = useState('')
   const [salvandoEdicao, setSalvandoEdicao] = useState(false)
+  const [cancelando, setCancelando] = useState(false)
 
   useEffect(() => {
     let ativo = true
@@ -59,9 +60,16 @@ export default function TreinoDetalhe() {
   const aguardando = treino.aguardando || []
   const vagaAberta = cancelaram[0]
 
-  function confirmarCancelamento() {
-    setModalCancelar(false)
-    navigate('/')
+  async function confirmarCancelamento() {
+    if (cancelando) return
+    setCancelando(true)
+    try {
+      await deletarTreino(treino.id)
+      setModalCancelar(false)
+      navigate('/')
+    } finally {
+      setCancelando(false)
+    }
   }
 
   function abrirEdicaoTreino() {
@@ -257,11 +265,15 @@ export default function TreinoDetalhe() {
         <div className="confirm-dialog">
           <p>Tem certeza que deseja cancelar este treino?</p>
           <div className="row">
-            <button className="btn-outline" onClick={() => setModalCancelar(false)}>
+            <button
+              className="btn-outline"
+              onClick={() => setModalCancelar(false)}
+              disabled={cancelando}
+            >
               Não
             </button>
-            <button className="btn-danger" onClick={confirmarCancelamento}>
-              Sim
+            <button className="btn-danger" onClick={confirmarCancelamento} disabled={cancelando}>
+              {cancelando ? 'Cancelando...' : 'Sim'}
             </button>
           </div>
         </div>

@@ -7,7 +7,9 @@ import Badge from '../components/Badge'
 import Modal from '../components/Modal'
 import InviteFriendsModal from '../components/InviteFriendsModal'
 import { useAuth } from '../contexts/AuthContext'
-import { getPelada, atualizarPelada } from '../services/firestore'
+import { getPelada, atualizarPelada, deletarPelada } from '../services/firestore'
+
+const niveis = ['Iniciante', 'Intermediário', 'Avançado', 'Aberto']
 
 export default function PeladaDetalhe() {
   const { id } = useParams()
@@ -21,11 +23,13 @@ export default function PeladaDetalhe() {
   const [data, setData] = useState('')
   const [horario, setHorario] = useState('')
   const [vagas, setVagas] = useState(0)
+  const [nivel, setNivel] = useState('')
 
   const [modalConvidar, setModalConvidar] = useState(false)
   const [modalEditar, setModalEditar] = useState(false)
   const [modalCancelar, setModalCancelar] = useState(false)
   const [salvandoEdicao, setSalvandoEdicao] = useState(false)
+  const [cancelando, setCancelando] = useState(false)
 
   useEffect(() => {
     let ativo = true
@@ -39,6 +43,7 @@ export default function PeladaDetalhe() {
       setData(res?.data ?? '')
       setHorario(res?.horario ?? '')
       setVagas(res?.vagas ?? 0)
+      setNivel(res?.nivel ?? '')
       setLoading(false)
     })
     return () => {
@@ -74,17 +79,24 @@ export default function PeladaDetalhe() {
     }
   }
 
-  function confirmarCancelamento() {
-    setModalCancelar(false)
-    navigate('/')
+  async function confirmarCancelamento() {
+    if (cancelando) return
+    setCancelando(true)
+    try {
+      await deletarPelada(pelada.id)
+      setModalCancelar(false)
+      navigate('/')
+    } finally {
+      setCancelando(false)
+    }
   }
 
   async function salvarEdicaoPelada() {
     if (salvandoEdicao) return
     setSalvandoEdicao(true)
     try {
-      await atualizarPelada(pelada.id, { nome, local, data, horario, vagas })
-      setPelada((p) => ({ ...p, nome, local, data, horario, vagas }))
+      await atualizarPelada(pelada.id, { nome, local, data, horario, vagas, nivel })
+      setPelada((p) => ({ ...p, nome, local, data, horario, vagas, nivel }))
       setModalEditar(false)
     } finally {
       setSalvandoEdicao(false)
@@ -115,6 +127,7 @@ export default function PeladaDetalhe() {
             <span className="badge badge-white">
               {lotada ? 'Lotada' : `${vagas - confirmados.length} vagas`}
             </span>
+            {pelada.nivel && <span className="badge badge-white">{pelada.nivel}</span>}
           </div>
         </div>
       </div>
@@ -234,6 +247,21 @@ export default function PeladaDetalhe() {
             </button>
           </div>
         </div>
+        <div className="field">
+          <label>Nível</label>
+          <div className="chip-scroll">
+            {niveis.map((n) => (
+              <button
+                type="button"
+                key={n}
+                className={`chip${nivel === n ? ' active' : ''}`}
+                onClick={() => setNivel(n)}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
         <button
           type="button"
           className="btn-primary"
@@ -253,11 +281,15 @@ export default function PeladaDetalhe() {
         <div className="confirm-dialog">
           <p>Tem certeza que deseja cancelar esta pelada?</p>
           <div className="row">
-            <button className="btn-outline" onClick={() => setModalCancelar(false)}>
+            <button
+              className="btn-outline"
+              onClick={() => setModalCancelar(false)}
+              disabled={cancelando}
+            >
               Não
             </button>
-            <button className="btn-danger" onClick={confirmarCancelamento}>
-              Sim
+            <button className="btn-danger" onClick={confirmarCancelamento} disabled={cancelando}>
+              {cancelando ? 'Cancelando...' : 'Sim'}
             </button>
           </div>
         </div>

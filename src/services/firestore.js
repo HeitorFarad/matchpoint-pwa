@@ -1,5 +1,5 @@
 import {
-  collection, doc, addDoc, updateDoc, deleteDoc,
+  collection, doc, addDoc, updateDoc, deleteDoc, setDoc,
   getDoc, getDocs, onSnapshot, query, where, orderBy, serverTimestamp
 } from 'firebase/firestore'
 import { db } from '../firebase'
@@ -33,6 +33,17 @@ export async function getPelada(id) {
 
 export async function atualizarPelada(id, dados) {
   await updateDoc(doc(db, 'peladas', id), dados)
+}
+
+export async function deletarPelada(id) {
+  await deleteDoc(doc(db, 'peladas', id))
+}
+
+export async function getPeladasConfirmadasDoUsuario(uid) {
+  const snap = await getDocs(collection(db, 'peladas'))
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((p) => (p.confirmados || []).some((c) => c.id === uid))
 }
 
 export async function confirmarPelada(peladaId, user) {
@@ -75,4 +86,19 @@ export async function getTreino(id) {
 
 export async function atualizarTreino(id, dados) {
   await updateDoc(doc(db, 'treinos', id), dados)
+}
+
+export async function deletarTreino(id) {
+  await deleteDoc(doc(db, 'treinos', id))
+}
+
+// ── USUARIOS ─────────────────────────────────────────
+
+export async function atualizarUsuario(uid, dados) {
+  await setDoc(doc(db, 'usuarios', uid), dados, { merge: true })
+}
+
+export async function getUsuario(uid) {
+  const snap = await getDoc(doc(db, 'usuarios', uid))
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null
 }

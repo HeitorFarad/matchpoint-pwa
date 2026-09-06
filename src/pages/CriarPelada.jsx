@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MapPin, Calendar, Clock, Minus, Plus, UserPlus } from 'lucide-react'
+import { Trophy, MapPin, Calendar, Clock, Minus, Plus, UserPlus } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import { useAuth } from '../contexts/AuthContext'
 import { criarPelada } from '../services/firestore'
@@ -10,6 +10,7 @@ const niveis = ['Iniciante', 'Intermediário', 'Avançado', 'Aberto']
 export default function CriarPelada() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const [nome, setNome] = useState('')
   const [local, setLocal] = useState('')
   const [data, setData] = useState('')
   const [horario, setHorario] = useState('')
@@ -24,7 +25,7 @@ export default function CriarPelada() {
     setSalvando(true)
     try {
       await criarPelada(
-        { nome: local, local, data, horario, vagas: limite, nivel },
+        { nome, local, data, horario, vagas: limite, nivel },
         user,
       )
       navigate('/')
@@ -37,6 +38,18 @@ export default function CriarPelada() {
     <div>
       <PageHeader title="Nova pelada" />
       <form className="app-content" style={{ paddingTop: 4 }} onSubmit={handleSubmit}>
+        <div className="field">
+          <label>Nome da pelada</label>
+          <div className="input-wrap">
+            <Trophy size={18} />
+            <input
+              placeholder="Ex: Pelada de sexta"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+            />
+          </div>
+        </div>
+
         <div className="field">
           <label>Local</label>
           <div className="input-wrap">

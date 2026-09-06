@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { updateProfile } from 'firebase/auth'
 import { User, AtSign, MapPin } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import { useAuth } from '../contexts/AuthContext'
 import { auth } from '../firebase'
+import { atualizarUsuario, getUsuario } from '../services/firestore'
 
 const niveis = ['Iniciante', 'Intermediário', 'Avançado']
 
@@ -17,12 +18,25 @@ export default function EditarPerfil() {
   const [nivel, setNivel] = useState('')
   const [salvando, setSalvando] = useState(false)
 
+  useEffect(() => {
+    let ativo = true
+    getUsuario(user.uid).then((res) => {
+      if (!ativo || !res) return
+      if (res.cidade) setCidade(res.cidade)
+      if (res.nivel) setNivel(res.nivel)
+    })
+    return () => {
+      ativo = false
+    }
+  }, [user.uid])
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (salvando) return
     setSalvando(true)
     try {
       await updateProfile(auth.currentUser, { displayName: nome })
+      await atualizarUsuario(user.uid, { cidade, nivel })
       navigate('/perfil')
     } finally {
       setSalvando(false)

@@ -1,17 +1,47 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Volleyball, CalendarCheck } from 'lucide-react'
+import { Volleyball } from 'lucide-react'
 import Card from '../components/Card'
 import Badge from '../components/Badge'
 import { useAuth } from '../contexts/AuthContext'
-import { historico } from '../data/mock'
+import { getPeladasConfirmadasDoUsuario, getUsuario } from '../services/firestore'
 
 export default function Perfil() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const nome = user.displayName || user.email
-  const presenca = Math.round(
-    (historico.filter((h) => h.status === 'Confirmado').length / historico.length) * 100,
-  )
+  const [historico, setHistorico] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [dadosUsuario, setDadosUsuario] = useState(null)
+
+  useEffect(() => {
+    let ativo = true
+    getPeladasConfirmadasDoUsuario(user.uid).then((peladas) => {
+      if (!ativo) return
+      setHistorico(peladas)
+      setLoading(false)
+    })
+    return () => {
+      ativo = false
+    }
+  }, [user.uid])
+
+  useEffect(() => {
+    let ativo = true
+    getUsuario(user.uid).then((res) => {
+      if (!ativo) return
+      setDadosUsuario(res)
+    })
+    return () => {
+      ativo = false
+    }
+  }, [user.uid])
+
+  const totalConfirmadas = historico.length
+  const organizadas = historico.filter((p) => p.organizadorId === user.uid).length
+  const subtitulo = [user.displayName ? user.email : null, dadosUsuario?.cidade]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
     <div>
@@ -30,8 +60,13 @@ export default function Perfil() {
           {nome[0]?.toUpperCase()}
         </div>
         <h1 style={{ fontSize: 19, marginBottom: 2 }}>{nome}</h1>
-        {user.displayName && (
-          <p style={{ margin: 0, fontSize: 13, opacity: 0.9 }}>{user.email}</p>
+        {subtitulo && (
+          <p style={{ margin: 0, fontSize: 13, opacity: 0.9 }}>{subtitulo}</p>
+        )}
+        {dadosUsuario?.nivel && (
+          <div style={{ marginTop: 10 }}>
+            <span className="badge badge-white">{dadosUsuario.nivel}</span>
+          </div>
         )}
       </div>
 
@@ -40,7 +75,7 @@ export default function Perfil() {
           <div className="row-between" style={{ textAlign: 'center' }}>
             <div style={{ flex: 1 }}>
               <p style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--primary)' }}>
-                24
+                {totalConfirmadas}
               </p>
               <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
                 Peladas
@@ -48,43 +83,37 @@ export default function Perfil() {
             </div>
             <div style={{ flex: 1 }}>
               <p style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--primary)' }}>
-                6
+                {organizadas}
               </p>
               <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
                 Organizadas
-              </p>
-            </div>
-            <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--primary)' }}>
-                {presenca}%
-              </p>
-              <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>
-                Presença
               </p>
             </div>
           </div>
         </Card>
 
         <Card title="Histórico" style={{ marginTop: 12 }}>
-          {historico.map((h) => (
-            <div className="list-row" key={h.id}>
-              <div
-                className="icon-btn"
-                style={{ border: 'none', background: 'var(--green-bg)' }}
-              >
-                {h.nome.includes('Treino') ? (
-                  <CalendarCheck size={18} color="var(--primary)" />
-                ) : (
+          {loading ? (
+            <p className="empty-state">Carregando...</p>
+          ) : historico.length === 0 ? (
+            <p className="empty-state">Nenhuma pelada ainda.</p>
+          ) : (
+            historico.map((p) => (
+              <div className="list-row" key={p.id}>
+                <div
+                  className="icon-btn"
+                  style={{ border: 'none', background: 'var(--green-bg)' }}
+                >
                   <Volleyball size={18} color="var(--primary)" />
-                )}
+                </div>
+                <div className="info">
+                  <p className="name">{p.nome}</p>
+                  <p className="sub">{p.data}</p>
+                </div>
+                <Badge color="green">Confirmado</Badge>
               </div>
-              <div className="info">
-                <p className="name">{h.nome}</p>
-                <p className="sub">{h.data}</p>
-              </div>
-              <Badge color={h.status === 'Confirmado' ? 'green' : 'red'}>{h.status}</Badge>
-            </div>
-          ))}
+            ))
+          )}
         </Card>
 
         <button

@@ -1,13 +1,35 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Calendar, MapPin, Users } from 'lucide-react'
 import Avatar from '../components/Avatar'
-import { getPeladaById } from '../data/mock'
+import { getPelada } from '../services/firestore'
 
 export default function ConvitePublico() {
   const { id } = useParams()
-  const pelada = getPeladaById(id)
+  const [pelada, setPelada] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [confirmado, setConfirmado] = useState(false)
+
+  useEffect(() => {
+    let ativo = true
+    setLoading(true)
+    getPelada(id).then((res) => {
+      if (!ativo) return
+      setPelada(res)
+      setLoading(false)
+    })
+    return () => {
+      ativo = false
+    }
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="app-content">
+        <p className="empty-state">Carregando...</p>
+      </div>
+    )
+  }
 
   if (!pelada) {
     return (
@@ -17,7 +39,8 @@ export default function ConvitePublico() {
     )
   }
 
-  const vagasRestantes = Math.max(pelada.vagas - pelada.confirmados.length, 0)
+  const confirmadosPelada = pelada.confirmados || []
+  const vagasRestantes = Math.max(pelada.vagas - confirmadosPelada.length, 0)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100svh' }}>
@@ -55,7 +78,7 @@ export default function ConvitePublico() {
             </div>
             <div className="info">
               <p className="name" style={{ fontWeight: 600 }}>
-                {pelada.confirmados.length}/{pelada.vagas} vagas · {vagasRestantes} restantes
+                {confirmadosPelada.length}/{pelada.vagas} vagas · {vagasRestantes} restantes
               </p>
             </div>
           </div>
@@ -63,12 +86,12 @@ export default function ConvitePublico() {
 
         <div className="row" style={{ marginTop: 16, justifyContent: 'center', gap: 10 }}>
           <div className="avatar-stack">
-            {pelada.confirmados.slice(0, 5).map((c) => (
+            {confirmadosPelada.slice(0, 5).map((c) => (
               <Avatar key={c.id} name={c.name} size={32} />
             ))}
           </div>
           <span className="muted" style={{ fontSize: 13 }}>
-            {pelada.confirmados.length} confirmados
+            {confirmadosPelada.length} confirmados
           </span>
         </div>
 
