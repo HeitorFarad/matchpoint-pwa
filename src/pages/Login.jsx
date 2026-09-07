@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
+import { signInWithRedirect, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
 import { auth, googleProvider } from '../firebase'
 
 export default function Login() {
@@ -10,7 +10,7 @@ export default function Login() {
 
   const loginGoogle = async () => {
     try {
-      await signInWithPopup(auth, googleProvider)
+      await signInWithRedirect(auth, googleProvider)
     } catch (e) {
       setErro('Erro ao entrar com Google')
     }
