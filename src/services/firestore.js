@@ -129,6 +129,24 @@ export async function buscarUsuarioPorUsername(username) {
   return { id: d.id, ...d.data() }
 }
 
+export async function buscarUsuariosPorIds(ids) {
+  const unicos = [...new Set(ids)].filter(Boolean)
+  const pares = await Promise.all(unicos.map(async (id) => [id, await getUsuario(id)]))
+  return Object.fromEntries(pares)
+}
+
+export async function gerarUsernameDisponivel(base) {
+  const limpo = (base || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  if (!limpo) return null
+  let username = limpo
+  let contador = 1
+  while (await buscarUsuarioPorUsername(username)) {
+    contador += 1
+    username = `${limpo}${contador}`
+  }
+  return username
+}
+
 // ── AMIZADES ─────────────────────────────────────────
 
 export async function buscarAmizadeEntre(uid1, uid2) {

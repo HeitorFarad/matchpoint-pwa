@@ -6,9 +6,11 @@ import Card from '../components/Card'
 import Badge from '../components/Badge'
 import Modal from '../components/Modal'
 import InviteFriendsModal from '../components/InviteFriendsModal'
+import ParticipanteModal from '../components/ParticipanteModal'
 import Toast from '../components/Toast'
 import { useAuth } from '../contexts/AuthContext'
-import { getPelada, atualizarPelada, deletarPelada, confirmarPelada } from '../services/firestore'
+import { getPelada, atualizarPelada, deletarPelada, confirmarPelada, buscarUsuariosPorIds } from '../services/firestore'
+import { formatarData } from '../utils/formatarData'
 
 const niveis = ['Iniciante', 'Intermediário', 'Avançado', 'Aberto']
 
@@ -32,13 +34,15 @@ export default function PeladaDetalhe() {
   const [salvandoEdicao, setSalvandoEdicao] = useState(false)
   const [cancelando, setCancelando] = useState(false)
   const [toast, setToast] = useState('')
+  const [perfis, setPerfis] = useState({})
+  const [participanteSelecionado, setParticipanteSelecionado] = useState(null)
 
   useEffect(() => {
     if (!user) return
     let ativo = true
     setLoading(true)
     getPelada(id)
-      .then((res) => {
+      .then(async (res) => {
         if (!ativo) return
         setPelada(res)
         setConfirmados(res?.confirmados ?? [])
@@ -48,6 +52,10 @@ export default function PeladaDetalhe() {
         setHorario(res?.horario ?? '')
         setVagas(res?.vagas ?? 0)
         setNivel(res?.nivel ?? '')
+        const ids = [...(res?.confirmados || []), ...(res?.pendentes || [])].map((c) => c.id)
+        const mapa = await buscarUsuariosPorIds(ids)
+        if (!ativo) return
+        setPerfis(mapa)
         setLoading(false)
       })
       .catch((e) => {
@@ -59,6 +67,14 @@ export default function PeladaDetalhe() {
       ativo = false
     }
   }, [id, user])
+
+  function nomeExibicao(c) {
+    return perfis[c.id]?.nome || c.name
+  }
+
+  function abrirParticipante(c) {
+    setParticipanteSelecionado({ id: c.id, name: nomeExibicao(c), ...perfis[c.id] })
+  }
 
   if (loading) {
     return (
@@ -158,7 +174,7 @@ export default function PeladaDetalhe() {
         <div style={{ textAlign: 'center', paddingTop: 4 }}>
           <h1 style={{ fontSize: 19, marginBottom: 6 }}>{pelada.nome}</h1>
           <p style={{ margin: 0, fontSize: 13, opacity: 0.9 }}>
-            {data} · {horario} · Org: {pelada.organizador}
+            {formatarData(data)} · {horario} · Org: {pelada.organizador}
           </p>
           <p style={{ margin: '2px 0 0', fontSize: 13, opacity: 0.9 }}>{local}</p>
           <div className="row" style={{ justifyContent: 'center', gap: 8, marginTop: 12 }}>
@@ -193,11 +209,11 @@ export default function PeladaDetalhe() {
       <div className="app-content" style={{ paddingTop: souOrganizador ? 4 : 16 }}>
         <Card title={`Confirmados (${confirmados.length})`}>
           {confirmados.map((c) => (
-            <div className="list-row" key={c.id}>
-              <Avatar name={c.name} size={38} />
+            <div className="list-row" key={c.id} onClick={() => abrirParticipante(c)} style={{ cursor: 'pointer' }}>
+              <Avatar name={nomeExibicao(c)} size={38} />
               <div className="info">
                 <p className="name">
-                  {c.name}
+                  {nomeExibicao(c)}
                   {c.organizador && (
                     <Badge color="yellow" icon={<Crown size={12} />}>
                       Organizador
@@ -212,10 +228,10 @@ export default function PeladaDetalhe() {
         {(pelada.pendentes || []).length > 0 && (
           <Card title={`Convidados pendentes (${pelada.pendentes.length})`}>
             {pelada.pendentes.map((c) => (
-              <div className="list-row" key={c.id}>
-                <Avatar name={c.name} size={38} muted />
+              <div className="list-row" key={c.id} onClick={() => abrirParticipante(c)} style={{ cursor: 'pointer' }}>
+                <Avatar name={nomeExibicao(c)} size={38} muted />
                 <div className="info">
-                  <p className="name">{c.name}</p>
+                  <p className="name">{nomeExibicao(c)}</p>
                 </div>
                 <Badge color="yellow">Pendente</Badge>
               </div>
@@ -336,6 +352,12 @@ export default function PeladaDetalhe() {
           </div>
         </div>
       </Modal>
+
+      <ParticipanteModal
+        open={!!participanteSelecionado}
+        onClose={() => setParticipanteSelecionado(null)}
+        participante={participanteSelecionado}
+      />
 
       <Toast message={toast} />
     </div>

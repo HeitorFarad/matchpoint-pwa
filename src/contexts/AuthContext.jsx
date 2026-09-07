@@ -1,7 +1,15 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth'
 import { auth } from '../firebase'
-import { sincronizarUsuario } from '../services/firestore'
+import { sincronizarUsuario, getUsuario, atualizarUsuario, gerarUsernameDisponivel } from '../services/firestore'
+
+async function garantirUsername(user) {
+  const dados = await getUsuario(user.uid)
+  if (dados?.username) return
+  const username = await gerarUsernameDisponivel((user.email || '').split('@')[0])
+  if (!username) return
+  await atualizarUsuario(user.uid, { username })
+}
 
 const AuthContext = createContext()
 
@@ -22,9 +30,11 @@ export function AuthProvider({ children }) {
       setUser(user)
       setLoading(false)
       if (user) {
-        sincronizarUsuario(user).catch((e) => {
-          console.error('Erro ao sincronizar usuário:', e)
-        })
+        sincronizarUsuario(user)
+          .then(() => garantirUsername(user))
+          .catch((e) => {
+            console.error('Erro ao sincronizar usuário:', e)
+          })
       }
     })
 

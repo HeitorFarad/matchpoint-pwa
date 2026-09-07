@@ -6,8 +6,9 @@ import Card from '../components/Card'
 import Badge from '../components/Badge'
 import Modal from '../components/Modal'
 import InviteFriendsModal from '../components/InviteFriendsModal'
+import ParticipanteModal from '../components/ParticipanteModal'
 import { useAuth } from '../contexts/AuthContext'
-import { getTreino, atualizarTreino, deletarTreino, confirmarTreino } from '../services/firestore'
+import { getTreino, atualizarTreino, deletarTreino, confirmarTreino, buscarUsuariosPorIds } from '../services/firestore'
 
 export default function TreinoDetalhe() {
   const { id } = useParams()
@@ -26,15 +27,25 @@ export default function TreinoDetalhe() {
   const [editFim, setEditFim] = useState('')
   const [salvandoEdicao, setSalvandoEdicao] = useState(false)
   const [cancelando, setCancelando] = useState(false)
+  const [perfis, setPerfis] = useState({})
+  const [participanteSelecionado, setParticipanteSelecionado] = useState(null)
 
   useEffect(() => {
     if (!user) return
     let ativo = true
     setLoading(true)
     getTreino(id)
-      .then((res) => {
+      .then(async (res) => {
         if (!ativo) return
         setTreino(res)
+        const ids = [
+          ...(res?.confirmados || []),
+          ...(res?.cancelaram || []),
+          ...(res?.aguardando || []),
+        ].map((c) => c.id)
+        const mapa = await buscarUsuariosPorIds(ids)
+        if (!ativo) return
+        setPerfis(mapa)
         setLoading(false)
       })
       .catch((e) => {
@@ -46,6 +57,14 @@ export default function TreinoDetalhe() {
       ativo = false
     }
   }, [id, user])
+
+  function nomeExibicao(c) {
+    return perfis[c.id]?.nome || c.name
+  }
+
+  function abrirParticipante(c) {
+    setParticipanteSelecionado({ id: c.id, name: nomeExibicao(c), ...perfis[c.id] })
+  }
 
   if (loading) {
     return (
@@ -170,11 +189,11 @@ export default function TreinoDetalhe() {
 
         <Card title={`Confirmados (${confirmadosTreino.length})`}>
           {confirmadosTreino.map((c) => (
-            <div className="list-row" key={c.id}>
-              <Avatar name={c.name} size={38} />
+            <div className="list-row" key={c.id} onClick={() => abrirParticipante(c)} style={{ cursor: 'pointer' }}>
+              <Avatar name={nomeExibicao(c)} size={38} />
               <div className="info">
                 <p className="name">
-                  {c.name}
+                  {nomeExibicao(c)}
                   <Badge color={c.tipo === 'Fixo' ? 'green' : 'yellow'}>{c.tipo}</Badge>
                 </p>
                 <p className="sub">✓ Confirmou</p>
@@ -186,11 +205,11 @@ export default function TreinoDetalhe() {
         {cancelaram.length > 0 && (
           <Card title={`Cancelaram (${cancelaram.length})`}>
             {cancelaram.map((c) => (
-              <div className="list-row" key={c.id}>
-                <Avatar name={c.name} size={38} muted />
+              <div className="list-row" key={c.id} onClick={() => abrirParticipante(c)} style={{ cursor: 'pointer' }}>
+                <Avatar name={nomeExibicao(c)} size={38} muted />
                 <div className="info">
                   <p className="name" style={{ color: 'var(--text-secondary)' }}>
-                    {c.name}
+                    {nomeExibicao(c)}
                   </p>
                   <p className="sub">Cancelou às {c.horario}</p>
                 </div>
@@ -202,11 +221,11 @@ export default function TreinoDetalhe() {
         {aguardando.length > 0 && (
           <Card title={`Aguardando resposta (${aguardando.length})`}>
             {aguardando.map((c) => (
-              <div className="list-row" key={c.id}>
-                <Avatar name={c.name} size={38} muted />
+              <div className="list-row" key={c.id} onClick={() => abrirParticipante(c)} style={{ cursor: 'pointer' }}>
+                <Avatar name={nomeExibicao(c)} size={38} muted />
                 <div className="info">
                   <p className="name" style={{ color: 'var(--text-secondary)' }}>
-                    {c.name}
+                    {nomeExibicao(c)}
                   </p>
                   <p className="sub">Lembrete enviado</p>
                 </div>
@@ -299,6 +318,12 @@ export default function TreinoDetalhe() {
           </div>
         </div>
       </Modal>
+
+      <ParticipanteModal
+        open={!!participanteSelecionado}
+        onClose={() => setParticipanteSelecionado(null)}
+        participante={participanteSelecionado}
+      />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { Calendar, MapPin, Users } from 'lucide-react'
 import Avatar from '../components/Avatar'
 import { useAuth } from '../contexts/AuthContext'
 import { getPelada, confirmarPelada } from '../services/firestore'
+import { formatarData } from '../utils/formatarData'
 
 export default function ConvitePublico() {
   const { id } = useParams()
@@ -126,7 +127,7 @@ export default function ConvitePublico() {
             </div>
             <div className="info">
               <p className="name" style={{ fontWeight: 600 }}>
-                {pelada.data} às {pelada.horario}
+                {formatarData(pelada.data)} às {pelada.horario}
               </p>
             </div>
           </div>

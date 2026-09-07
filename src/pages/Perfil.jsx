@@ -5,6 +5,7 @@ import Card from '../components/Card'
 import Badge from '../components/Badge'
 import { useAuth } from '../contexts/AuthContext'
 import { getPeladasConfirmadasDoUsuario, getUsuario } from '../services/firestore'
+import { formatarData } from '../utils/formatarData'
 
 export default function Perfil() {
   const navigate = useNavigate()
@@ -108,7 +109,7 @@ export default function Perfil() {
                 </div>
                 <div className="info">
                   <p className="name">{p.nome}</p>
-                  <p className="sub">{p.data}</p>
+                  <p className="sub">{formatarData(p.data)}</p>
                 </div>
                 <Badge color="green">Confirmado</Badge>
               </div>

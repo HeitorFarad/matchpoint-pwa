@@ -5,6 +5,7 @@ import Avatar from '../components/Avatar'
 import Badge from '../components/Badge'
 import { useAuth } from '../contexts/AuthContext'
 import { subscribePeladas, subscribeTreinos } from '../services/firestore'
+import { formatarData } from '../utils/formatarData'
 
 const hoje = new Date().toLocaleDateString('pt-BR', {
   weekday: 'long', day: 'numeric', month: 'long',
@@ -53,7 +54,7 @@ export default function Home() {
             <h2 style={{ margin: '8px 0 12px', fontSize: 19 }}>{destaque.nome}</h2>
             <div className="row" style={{ gap: 16, flexWrap: 'wrap' }}>
               <span className="row" style={{ gap: 6, fontSize: 13 }}><MapPin size={16} /> {destaque.local}</span>
-              <span className="row" style={{ gap: 6, fontSize: 13 }}><Clock size={16} /> {destaque.data} · {destaque.horario}</span>
+              <span className="row" style={{ gap: 6, fontSize: 13 }}><Clock size={16} /> {formatarData(destaque.data)} · {destaque.horario}</span>
             </div>
             <div className="row" style={{ marginTop: 14, gap: 10 }}>
               <div className="avatar-stack">
@@ -84,7 +85,7 @@ export default function Home() {
               <div className="row-between">
                 <div style={{ minWidth: 0 }}>
                   <p style={{ margin: 0, fontWeight: 600, fontSize: 15 }}>{p.nome}</p>
-                  <p className="muted" style={{ margin: '4px 0 0', fontSize: 13 }}>{p.data} · {p.horario}</p>
+                  <p className="muted" style={{ margin: '4px 0 0', fontSize: 13 }}>{formatarData(p.data)} · {p.horario}</p>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   {lotada ? <Badge color="red">Lotada</Badge> : <Badge color="green">{(p.confirmados || []).length}/{p.vagas}</Badge>}
