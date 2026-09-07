@@ -6,6 +6,7 @@ import Card from '../components/Card'
 import Badge from '../components/Badge'
 import Modal from '../components/Modal'
 import InviteFriendsModal from '../components/InviteFriendsModal'
+import Toast from '../components/Toast'
 import { useAuth } from '../contexts/AuthContext'
 import { getPelada, atualizarPelada, deletarPelada, confirmarPelada } from '../services/firestore'
 
@@ -30,6 +31,7 @@ export default function PeladaDetalhe() {
   const [modalCancelar, setModalCancelar] = useState(false)
   const [salvandoEdicao, setSalvandoEdicao] = useState(false)
   const [cancelando, setCancelando] = useState(false)
+  const [toast, setToast] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -98,6 +100,33 @@ export default function PeladaDetalhe() {
     }
   }
 
+  function mostrarToast(mensagem) {
+    setToast(mensagem)
+    setTimeout(() => setToast(''), 2500)
+  }
+
+  async function compartilharPelada() {
+    const link = `https://matchpoint-pwa.vercel.app/convite/${pelada.id}`
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: pelada.nome,
+          text: `Bora jogar? Confirma presença na pelada "${pelada.nome}"!`,
+          url: link,
+        })
+      } catch (e) {
+        if (e.name !== 'AbortError') console.error('Erro ao compartilhar:', e)
+      }
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(link)
+      mostrarToast('Link copiado!')
+    } catch (e) {
+      console.error('Erro ao copiar link:', e)
+    }
+  }
+
   async function convidarAmigo(amigo) {
     await confirmarPelada(pelada.id, { uid: amigo.uid, displayName: amigo.nome, email: amigo.email })
     setConfirmados((list) => [...list, { id: amigo.uid, name: amigo.nome || amigo.username }])
@@ -152,7 +181,7 @@ export default function PeladaDetalhe() {
           <button onClick={() => setModalEditar(true)}>
             <Pencil size={16} /> Editar
           </button>
-          <button onClick={() => navigate(`/convite/${pelada.id}`)}>
+          <button onClick={compartilharPelada}>
             <Share2 size={16} /> Compartilhar
           </button>
           <button className="danger" onClick={() => setModalCancelar(true)}>
@@ -307,6 +336,8 @@ export default function PeladaDetalhe() {
           </div>
         </div>
       </Modal>
+
+      <Toast message={toast} />
     </div>
   )
 }

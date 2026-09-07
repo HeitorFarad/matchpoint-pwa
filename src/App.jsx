@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import BottomNav from './components/BottomNav'
 import Home from './pages/Home'
@@ -16,9 +17,28 @@ import Login from './pages/Login'
 function Layout() {
   const { user } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
   const semNav = location.pathname.startsWith('/convite/')
 
-  if (!user) return <Login />
+  useEffect(() => {
+    if (!user) return
+    const redirect = sessionStorage.getItem('conviteRedirect')
+    if (redirect) {
+      sessionStorage.removeItem('conviteRedirect')
+      navigate(redirect)
+    }
+  }, [user, navigate])
+
+  if (!user) {
+    if (semNav) {
+      return (
+        <Routes>
+          <Route path="/convite/:id" element={<ConvitePublico />} />
+        </Routes>
+      )
+    }
+    return <Login />
+  }
 
   return (
     <>

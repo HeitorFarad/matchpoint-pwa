@@ -1,27 +1,66 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { Calendar, MapPin, Users } from 'lucide-react'
 import Avatar from '../components/Avatar'
-import { getPelada } from '../services/firestore'
+import { useAuth } from '../contexts/AuthContext'
+import { getPelada, confirmarPelada } from '../services/firestore'
 
 export default function ConvitePublico() {
   const { id } = useParams()
+  const navigate = useNavigate()
+  const { user } = useAuth()
   const [pelada, setPelada] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [confirmando, setConfirmando] = useState(false)
   const [confirmado, setConfirmado] = useState(false)
 
   useEffect(() => {
     let ativo = true
     setLoading(true)
-    getPelada(id).then((res) => {
-      if (!ativo) return
-      setPelada(res)
-      setLoading(false)
-    })
+    getPelada(id)
+      .then((res) => {
+        if (!ativo) return
+        setPelada(res)
+        if (user && res?.confirmados?.some((c) => c.id === user.uid)) {
+          setConfirmado(true)
+        }
+        setLoading(false)
+      })
+      .catch((e) => {
+        console.error('Erro ao buscar convite:', e)
+        if (!ativo) return
+        setLoading(false)
+      })
     return () => {
       ativo = false
     }
-  }, [id])
+  }, [id, user])
+
+  function handleEntrar() {
+    sessionStorage.setItem('conviteRedirect', `/convite/${id}`)
+    navigate('/login')
+  }
+
+  async function handleConfirmar() {
+    if (!user) {
+      handleEntrar()
+      return
+    }
+    if (confirmando || confirmado) return
+    setConfirmando(true)
+    try {
+      await confirmarPelada(pelada.id, user)
+      setPelada((p) => ({
+        ...p,
+        confirmados: [...(p.confirmados || []), { id: user.uid, name: user.displayName || user.email }],
+      }))
+      setConfirmado(true)
+    } catch (e) {
+      console.error('Erro ao confirmar presença:', e)
+    } finally {
+      setConfirmando(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -97,19 +136,38 @@ export default function ConvitePublico() {
 
         <div style={{ marginTop: 28 }}>
           {confirmado ? (
-            <button className="btn-primary" disabled>
-              Presença confirmada ✓
-            </button>
+            <>
+              <button className="btn-primary" disabled>
+                Presença confirmada ✓
+              </button>
+              <p style={{ textAlign: 'center', marginTop: 16, fontSize: 14, color: 'var(--primary)', fontWeight: 600 }}>
+                Você confirmou presença! Nos vemos lá 🏐
+              </p>
+            </>
           ) : (
-            <button className="btn-primary" onClick={() => setConfirmado(true)}>
-              Quero ir! Confirmar presença
+            <button className="btn-primary" onClick={handleConfirmar} disabled={confirmando}>
+              {confirmando ? 'Confirmando...' : 'Quero ir! Confirmar presença'}
             </button>
           )}
-          <p style={{ textAlign: 'center', marginTop: 16 }}>
-            <Link to="/" style={{ color: 'var(--primary)', fontWeight: 600, fontSize: 14 }}>
-              Já tem conta? Entrar
-            </Link>
-          </p>
+          {!user && !confirmado && (
+            <p style={{ textAlign: 'center', marginTop: 16 }}>
+              <button
+                type="button"
+                onClick={handleEntrar}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  color: 'var(--primary)',
+                  fontWeight: 600,
+                  fontSize: 14,
+                  cursor: 'pointer',
+                }}
+              >
+                Já tem conta? Entrar
+              </button>
+            </p>
+          )}
         </div>
       </div>
 
