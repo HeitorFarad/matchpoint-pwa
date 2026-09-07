@@ -7,7 +7,7 @@ import Badge from '../components/Badge'
 import Modal from '../components/Modal'
 import InviteFriendsModal from '../components/InviteFriendsModal'
 import { useAuth } from '../contexts/AuthContext'
-import { getTreino, atualizarTreino, deletarTreino } from '../services/firestore'
+import { getTreino, atualizarTreino, deletarTreino, confirmarTreino } from '../services/firestore'
 
 export default function TreinoDetalhe() {
   const { id } = useParams()
@@ -79,6 +79,17 @@ export default function TreinoDetalhe() {
     } finally {
       setCancelando(false)
     }
+  }
+
+  async function convidarAmigo(amigo) {
+    await confirmarTreino(treino.id, { uid: amigo.uid, displayName: amigo.nome, email: amigo.email })
+    setTreino((t) => ({
+      ...t,
+      confirmados: [
+        ...(t.confirmados || []),
+        { id: amigo.uid, name: amigo.nome || amigo.username, tipo: 'Convidado', status: 'confirmou' },
+      ],
+    }))
   }
 
   function abrirEdicaoTreino() {
@@ -209,6 +220,7 @@ export default function TreinoDetalhe() {
         open={modalConvidar}
         onClose={() => setModalConvidar(false)}
         excludeIds={confirmadosTreino.map((c) => c.id)}
+        onConvidar={convidarAmigo}
       />
 
       <Modal open={modalMenu} onClose={() => setModalMenu(false)} variant="center">

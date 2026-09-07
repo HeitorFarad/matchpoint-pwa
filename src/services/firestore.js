@@ -92,6 +92,17 @@ export async function deletarTreino(id) {
   await deleteDoc(doc(db, 'treinos', id))
 }
 
+export async function confirmarTreino(treinoId, user) {
+  const ref = doc(db, 'treinos', treinoId)
+  const snap = await getDoc(ref)
+  const treino = snap.data()
+  const jaConfirmado = treino.confirmados?.some(c => c.id === user.uid)
+  if (jaConfirmado) return
+  await updateDoc(ref, {
+    confirmados: [...(treino.confirmados || []), { id: user.uid, name: user.displayName || user.email, tipo: 'Convidado', status: 'confirmou' }]
+  })
+}
+
 // ── USUARIOS ─────────────────────────────────────────
 
 export async function atualizarUsuario(uid, dados) {

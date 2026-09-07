@@ -7,7 +7,7 @@ import Badge from '../components/Badge'
 import Modal from '../components/Modal'
 import InviteFriendsModal from '../components/InviteFriendsModal'
 import { useAuth } from '../contexts/AuthContext'
-import { getPelada, atualizarPelada, deletarPelada } from '../services/firestore'
+import { getPelada, atualizarPelada, deletarPelada, confirmarPelada } from '../services/firestore'
 
 const niveis = ['Iniciante', 'Intermediário', 'Avançado', 'Aberto']
 
@@ -96,6 +96,11 @@ export default function PeladaDetalhe() {
     } finally {
       setCancelando(false)
     }
+  }
+
+  async function convidarAmigo(amigo) {
+    await confirmarPelada(pelada.id, { uid: amigo.uid, displayName: amigo.nome, email: amigo.email })
+    setConfirmados((list) => [...list, { id: amigo.uid, name: amigo.nome || amigo.username }])
   }
 
   async function salvarEdicaoPelada() {
@@ -206,6 +211,7 @@ export default function PeladaDetalhe() {
         open={modalConvidar}
         onClose={() => setModalConvidar(false)}
         excludeIds={[...confirmados.map((c) => c.id), ...(pelada.pendentes || []).map((c) => c.id)]}
+        onConvidar={convidarAmigo}
       />
 
       <Modal open={modalEditar} onClose={() => setModalEditar(false)} title="Editar pelada">
