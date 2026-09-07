@@ -1,6 +1,10 @@
 import { useState } from 'react'
-import { signInWithRedirect, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
+import { signInWithPopup, signInWithRedirect, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
 import { auth, googleProvider } from '../firebase'
+
+function isIOSSafari() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+}
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -10,7 +14,11 @@ export default function Login() {
 
   const loginGoogle = async () => {
     try {
-      await signInWithRedirect(auth, googleProvider)
+      if (isIOSSafari()) {
+        await signInWithRedirect(auth, googleProvider)
+      } else {
+        await signInWithPopup(auth, googleProvider)
+      }
     } catch (e) {
       setErro('Erro ao entrar com Google')
     }

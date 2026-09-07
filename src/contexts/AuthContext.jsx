@@ -13,23 +13,16 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let unsubscribe = () => {}
+    getRedirectResult(auth).catch((e) => {
+      console.error('Erro ao processar redirect do login:', e)
+    })
 
-    async function init() {
-      try {
-        await getRedirectResult(auth)
-      } catch (e) {
-        console.error('Erro ao processar redirect do login:', e)
-      }
-      unsubscribe = onAuthStateChanged(auth, (user) => {
-        setUser(user)
-        setLoading(false)
-      })
-    }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user)
+      setLoading(false)
+    })
 
-    init()
-
-    return () => unsubscribe()
+    return unsubscribe
   }, [])
 
   const logout = () => signOut(auth)
