@@ -1,17 +1,42 @@
 import {
   collection, doc, addDoc, updateDoc, deleteDoc, setDoc,
-  getDoc, getDocs, onSnapshot, query, where, orderBy, serverTimestamp
+  getDoc, getDocs, query, where, serverTimestamp
 } from 'firebase/firestore'
 import { db } from '../firebase'
 
+function ordenarPorCriadoEmDesc(a, b) {
+  return (b.criadoEm?.toMillis?.() ?? 0) - (a.criadoEm?.toMillis?.() ?? 0)
+}
+
+function combinarSemDuplicatas(...listas) {
+  const mapa = new Map()
+  for (const lista of listas) {
+    for (const item of lista) mapa.set(item.id, item)
+  }
+  return [...mapa.values()].sort(ordenarPorCriadoEmDesc)
+}
+
 // ── PELADAS ──────────────────────────────────────────
 
-export function subscribePeladas(userId, callback) {
-  const q = query(collection(db, 'peladas'), orderBy('criadoEm', 'desc'))
-  return onSnapshot(q, (snap) => {
-    const peladas = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    callback(peladas)
-  })
+export async function getPeladasDoUsuario(uid) {
+  const q = query(collection(db, 'peladas'), where('organizadorId', '==', uid))
+  const snap = await getDocs(q)
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+}
+
+export async function getPeladasConfirmadas(uid) {
+  const snap = await getDocs(collection(db, 'peladas'))
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((p) => (p.confirmados || []).some((c) => (c.uid || c.id) === uid))
+}
+
+export async function getPeladasRelevantesDoUsuario(uid) {
+  const [organizadas, confirmadas] = await Promise.all([
+    getPeladasDoUsuario(uid),
+    getPeladasConfirmadas(uid),
+  ])
+  return combinarSemDuplicatas(organizadas, confirmadas)
 }
 
 export async function criarPelada(dados, user) {
@@ -68,12 +93,25 @@ export async function confirmarPelada(peladaId, user) {
 
 // ── TREINOS ──────────────────────────────────────────
 
-export function subscribeTreinos(userId, callback) {
-  const q = query(collection(db, 'treinos'), orderBy('criadoEm', 'desc'))
-  return onSnapshot(q, (snap) => {
-    const treinos = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    callback(treinos)
-  })
+export async function getTreinosDoUsuario(uid) {
+  const q = query(collection(db, 'treinos'), where('organizadorId', '==', uid))
+  const snap = await getDocs(q)
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+}
+
+export async function getTreinosConfirmados(uid) {
+  const snap = await getDocs(collection(db, 'treinos'))
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((t) => (t.confirmados || []).some((c) => (c.uid || c.id) === uid))
+}
+
+export async function getTreinosRelevantesDoUsuario(uid) {
+  const [organizados, confirmados] = await Promise.all([
+    getTreinosDoUsuario(uid),
+    getTreinosConfirmados(uid),
+  ])
+  return combinarSemDuplicatas(organizados, confirmados)
 }
 
 export async function criarTreino(dados, user) {

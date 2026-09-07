@@ -4,7 +4,7 @@ import { Plus, MapPin, Clock } from 'lucide-react'
 import Avatar from '../components/Avatar'
 import Badge from '../components/Badge'
 import { useAuth } from '../contexts/AuthContext'
-import { subscribePeladas, subscribeTreinos } from '../services/firestore'
+import { getPeladasRelevantesDoUsuario, getTreinosRelevantesDoUsuario } from '../services/firestore'
 import { formatarData } from '../utils/formatarData'
 
 const hoje = new Date().toLocaleDateString('pt-BR', {
@@ -18,14 +18,26 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubPeladas = subscribePeladas(user.uid, (data) => {
-      setPeladas(data)
-      setLoading(false)
-    })
-    const unsubTreinos = subscribeTreinos(user.uid, (data) => {
-      setTreinos(data)
-    })
-    return () => { unsubPeladas(); unsubTreinos() }
+    let ativo = true
+    setLoading(true)
+    Promise.all([
+      getPeladasRelevantesDoUsuario(user.uid),
+      getTreinosRelevantesDoUsuario(user.uid),
+    ])
+      .then(([peladasRes, treinosRes]) => {
+        if (!ativo) return
+        setPeladas(peladasRes)
+        setTreinos(treinosRes)
+        setLoading(false)
+      })
+      .catch((e) => {
+        console.error('Erro ao carregar peladas e treinos:', e)
+        if (!ativo) return
+        setLoading(false)
+      })
+    return () => {
+      ativo = false
+    }
   }, [user])
 
   const destaque = peladas[0]
