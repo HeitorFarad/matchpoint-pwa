@@ -1,15 +1,17 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { signInWithPopup, signInWithRedirect, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, deleteUser } from 'firebase/auth'
 import { auth, googleProvider } from '../firebase'
+import { useAuth } from '../contexts/AuthContext'
 import { atualizarUsuario, buscarUsuarioPorUsername, deletarUsuario } from '../services/firestore'
 
 function isIOSSafari() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 }
 
+const USERNAME_REGEX = /^[a-z0-9]+$/
+
 export default function Login() {
-  const navigate = useNavigate()
+  const { erroRedirect, limparErroRedirect } = useAuth()
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [confirmarSenha, setConfirmarSenha] = useState('')
@@ -18,7 +20,15 @@ export default function Login() {
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
 
+  useEffect(() => {
+    if (erroRedirect) {
+      setErro(erroRedirect)
+      limparErroRedirect()
+    }
+  }, [erroRedirect, limparErroRedirect])
+
   const loginGoogle = async () => {
+    setErro('')
     try {
       if (isIOSSafari()) {
         await signInWithRedirect(auth, googleProvider)
@@ -26,6 +36,7 @@ export default function Login() {
         await signInWithPopup(auth, googleProvider)
       }
     } catch (e) {
+      console.error('Erro ao entrar com Google:', e)
       setErro('Erro ao entrar com Google')
     }
   }
@@ -39,8 +50,16 @@ export default function Login() {
         setErro('Escolha um nome de usuário.')
         return
       }
+      if (!USERNAME_REGEX.test(username)) {
+        setErro('Username deve conter apenas letras minúsculas e números')
+        return
+      }
+      if (senha.length < 6) {
+        setErro('A senha deve ter pelo menos 6 caracteres')
+        return
+      }
       if (senha !== confirmarSenha) {
-        setErro('As senhas não coincidem.')
+        setErro('As senhas não coincidem')
         return
       }
     }
@@ -59,7 +78,6 @@ export default function Login() {
           }
           await updateProfile(cred.user, { displayName: username })
           await atualizarUsuario(cred.user.uid, { nome: username, email, username })
-          navigate('/')
         } catch (erroInterno) {
           console.error('Erro ao finalizar cadastro:', erroInterno)
           setErro('Erro ao criar conta')
@@ -67,7 +85,6 @@ export default function Login() {
         }
       } else {
         await signInWithEmailAndPassword(auth, email, senha)
-        navigate('/')
       }
     } catch (e) {
       setErro(isRegistro ? 'Erro ao criar conta' : 'E-mail ou senha incorretos')
@@ -101,11 +118,14 @@ export default function Login() {
         )}
 
         <input type="password" placeholder="Senha" value={senha} onChange={e => setSenha(e.target.value)}
-          style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '10px', fontSize: '16px', marginBottom: isRegistro ? '12px' : '16px', boxSizing: 'border-box' }} />
+          style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '10px', fontSize: '16px', marginBottom: isRegistro ? 0 : '16px', boxSizing: 'border-box' }} />
 
         {isRegistro && (
-          <input type="password" placeholder="Confirmar senha" value={confirmarSenha} onChange={e => setConfirmarSenha(e.target.value)}
-            style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '10px', fontSize: '16px', marginBottom: '16px', boxSizing: 'border-box' }} />
+          <>
+            <p style={{ color: '#999', fontSize: '12px', margin: '6px 0 12px' }}>Mínimo 6 caracteres</p>
+            <input type="password" placeholder="Confirmar senha" value={confirmarSenha} onChange={e => setConfirmarSenha(e.target.value)}
+              style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '10px', fontSize: '16px', marginBottom: '16px', boxSizing: 'border-box' }} />
+          </>
         )}
 
         {erro && <p style={{ color: 'red', fontSize: '14px', marginBottom: '12px' }}>{erro}</p>}

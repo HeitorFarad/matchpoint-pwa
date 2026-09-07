@@ -22,9 +22,9 @@ function Layout() {
 
   useEffect(() => {
     if (!user) return
-    const redirect = sessionStorage.getItem('conviteRedirect')
+    const redirect = sessionStorage.getItem('convite_redirect')
     if (redirect) {
-      sessionStorage.removeItem('conviteRedirect')
+      sessionStorage.removeItem('convite_redirect')
       navigate(redirect)
     }
   }, [user, navigate])

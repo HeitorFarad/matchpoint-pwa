@@ -15,6 +15,7 @@ export default function ConvitePublico() {
   const [erro, setErro] = useState(null)
   const [confirmando, setConfirmando] = useState(false)
   const [confirmado, setConfirmado] = useState(false)
+  const [erroConfirmar, setErroConfirmar] = useState('')
 
   useEffect(() => {
     let ativo = true
@@ -45,30 +46,28 @@ export default function ConvitePublico() {
   }, [id, user])
 
   function handleEntrar() {
-    sessionStorage.setItem('conviteRedirect', `/convite/${id}`)
+    sessionStorage.setItem('convite_redirect', `/convite/${id}`)
     navigate('/login')
   }
 
   async function handleConfirmar() {
     if (!user || confirmando || confirmado) return
     setConfirmando(true)
+    setErroConfirmar('')
     try {
       await confirmarPelada(pelada.id, user)
-      const nome = user.displayName || user.email
-      setPelada((p) => ({
-        ...p,
-        confirmados: [...(p.confirmados || []), {
-          id: user.uid,
-          uid: user.uid,
-          name: nome,
-          nome,
-          email: user.email,
-          tipo: 'Convidado',
-        }],
-      }))
+      // Confere no servidor se a confirmação realmente foi persistida antes de
+      // marcar como confirmado na tela, em vez de assumir sucesso de forma otimista.
+      const atualizada = await getPelada(pelada.id)
+      const persistiu = atualizada?.confirmados?.some((c) => c.id === user.uid)
+      if (!persistiu) {
+        throw new Error('Confirmação não foi salva no servidor.')
+      }
+      setPelada(atualizada)
       setConfirmado(true)
     } catch (e) {
       console.error('Erro ao confirmar presença:', e)
+      setErroConfirmar('Não foi possível confirmar sua presença. Tente novamente.')
     } finally {
       setConfirmando(false)
     }
@@ -181,9 +180,16 @@ export default function ConvitePublico() {
               </p>
             </>
           ) : user ? (
-            <button className="btn-primary" onClick={handleConfirmar} disabled={confirmando}>
-              {confirmando ? 'Confirmando...' : 'Quero ir! Confirmar presença'}
-            </button>
+            <>
+              <button className="btn-primary" onClick={handleConfirmar} disabled={confirmando}>
+                {confirmando ? 'Confirmando...' : 'Quero ir! Confirmar presença'}
+              </button>
+              {erroConfirmar && (
+                <p style={{ textAlign: 'center', marginTop: 12, fontSize: 13, color: 'var(--red)' }}>
+                  {erroConfirmar}
+                </p>
+              )}
+            </>
           ) : (
             <button className="btn-primary" onClick={handleEntrar}>
               Fazer login para confirmar

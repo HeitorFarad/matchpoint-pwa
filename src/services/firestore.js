@@ -49,6 +49,7 @@ export async function getPeladasConfirmadasDoUsuario(uid) {
 export async function confirmarPelada(peladaId, user) {
   const ref = doc(db, 'peladas', peladaId)
   const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Pelada não encontrada.')
   const pelada = snap.data()
   const jaConfirmado = pelada.confirmados?.some(c => c.id === user.uid)
   if (jaConfirmado) return
@@ -103,6 +104,7 @@ export async function deletarTreino(id) {
 export async function confirmarTreino(treinoId, user) {
   const ref = doc(db, 'treinos', treinoId)
   const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Treino não encontrado.')
   const treino = snap.data()
   const jaConfirmado = treino.confirmados?.some(c => c.id === user.uid)
   if (jaConfirmado) return
