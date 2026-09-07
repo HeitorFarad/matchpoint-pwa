@@ -61,7 +61,7 @@ textarea {
 
 .app-content {
   flex: 1;
-  padding: 16px 16px 96px;
+  padding: 16px 16px calc(96px + env(safe-area-inset-bottom));
 }
 
 /* Header */
@@ -251,10 +251,11 @@ textarea {
 
 /* Bottom Nav */
 .bottom-nav {
-  position: sticky;
+  position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
+  z-index: 10;
   background: #fff;
   border-top: 1px solid var(--border);
   display: flex;
