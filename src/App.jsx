@@ -8,6 +8,7 @@ import ConvitePublico from './pages/ConvitePublico'
 import CriarTreino from './pages/CriarTreino'
 import TreinoDetalhe from './pages/TreinoDetalhe'
 import Amigos from './pages/Amigos'
+import Pendencias from './pages/Pendencias'
 import Perfil from './pages/Perfil'
 import EditarPerfil from './pages/EditarPerfil'
 import Login from './pages/Login'
@@ -29,6 +30,7 @@ function Layout() {
         <Route path="/criar-treino" element={<CriarTreino />} />
         <Route path="/treino/:id" element={<TreinoDetalhe />} />
         <Route path="/amigos" element={<Amigos />} />
+        <Route path="/pendencias" element={<Pendencias />} />
         <Route path="/perfil" element={<Perfil />} />
         <Route path="/editar-perfil" element={<EditarPerfil />} />
       </Routes>

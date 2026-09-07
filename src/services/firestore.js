@@ -102,3 +102,76 @@ export async function getUsuario(uid) {
   const snap = await getDoc(doc(db, 'usuarios', uid))
   return snap.exists() ? { id: snap.id, ...snap.data() } : null
 }
+
+export async function sincronizarUsuario(user) {
+  await setDoc(doc(db, 'usuarios', user.uid), {
+    nome: user.displayName || user.email,
+    email: user.email,
+  }, { merge: true })
+}
+
+export async function buscarUsuarioPorUsername(username) {
+  const q = query(collection(db, 'usuarios'), where('username', '==', username))
+  const snap = await getDocs(q)
+  if (snap.empty) return null
+  const d = snap.docs[0]
+  return { id: d.id, ...d.data() }
+}
+
+// ── AMIZADES ─────────────────────────────────────────
+
+export async function buscarAmizadeEntre(uid1, uid2) {
+  const q1 = query(collection(db, 'amizades'), where('de', '==', uid1), where('para', '==', uid2))
+  const q2 = query(collection(db, 'amizades'), where('de', '==', uid2), where('para', '==', uid1))
+  const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)])
+  const d = snap1.docs[0] || snap2.docs[0]
+  return d ? { id: d.id, ...d.data() } : null
+}
+
+export async function enviarSolicitacaoAmizade(deUid, paraUid) {
+  return await addDoc(collection(db, 'amizades'), {
+    de: deUid,
+    para: paraUid,
+    status: 'pendente',
+    criadoEm: serverTimestamp(),
+  })
+}
+
+export async function buscarSolicitacoesPendentes(uid) {
+  const q = query(collection(db, 'amizades'), where('para', '==', uid), where('status', '==', 'pendente'))
+  const snap = await getDocs(q)
+  const solicitacoes = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+  return await Promise.all(
+    solicitacoes.map(async (s) => ({ ...s, usuario: await getUsuario(s.de) }))
+  )
+}
+
+export async function buscarSolicitacoesEnviadas(uid) {
+  const q = query(collection(db, 'amizades'), where('de', '==', uid), where('status', '==', 'pendente'))
+  const snap = await getDocs(q)
+  const solicitacoes = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+  return await Promise.all(
+    solicitacoes.map(async (s) => ({ ...s, usuario: await getUsuario(s.para) }))
+  )
+}
+
+export async function buscarAmigos(uid) {
+  const qDe = query(collection(db, 'amizades'), where('de', '==', uid), where('status', '==', 'aceito'))
+  const qPara = query(collection(db, 'amizades'), where('para', '==', uid), where('status', '==', 'aceito'))
+  const [snapDe, snapPara] = await Promise.all([getDocs(qDe), getDocs(qPara)])
+  const amizades = [
+    ...snapDe.docs.map((d) => ({ id: d.id, amigoUid: d.data().para })),
+    ...snapPara.docs.map((d) => ({ id: d.id, amigoUid: d.data().de })),
+  ]
+  return await Promise.all(
+    amizades.map(async (a) => ({ id: a.id, uid: a.amigoUid, ...(await getUsuario(a.amigoUid)) }))
+  )
+}
+
+export async function responderSolicitacao(amizadeId, status) {
+  await updateDoc(doc(db, 'amizades', amizadeId), { status })
+}
+
+export async function cancelarSolicitacao(amizadeId) {
+  await deleteDoc(doc(db, 'amizades', amizadeId))
+}

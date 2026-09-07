@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth'
 import { auth } from '../firebase'
+import { sincronizarUsuario } from '../services/firestore'
 
 const AuthContext = createContext()
 
@@ -20,6 +21,11 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user)
       setLoading(false)
+      if (user) {
+        sincronizarUsuario(user).catch((e) => {
+          console.error('Erro ao sincronizar usuário:', e)
+        })
+      }
     })
 
     return unsubscribe

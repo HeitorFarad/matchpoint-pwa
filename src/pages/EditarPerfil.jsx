@@ -5,7 +5,7 @@ import { User, AtSign, MapPin } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import { useAuth } from '../contexts/AuthContext'
 import { auth } from '../firebase'
-import { atualizarUsuario, getUsuario } from '../services/firestore'
+import { atualizarUsuario, buscarUsuarioPorUsername, getUsuario } from '../services/firestore'
 
 const niveis = ['Iniciante', 'Intermediário', 'Avançado']
 
@@ -13,10 +13,11 @@ export default function EditarPerfil() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [nome, setNome] = useState(user.displayName || '')
-  const [username, setUsername] = useState(user.email ? user.email.split('@')[0] : '')
+  const [username, setUsername] = useState('')
   const [cidade, setCidade] = useState('')
   const [nivel, setNivel] = useState('')
   const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState('')
 
   useEffect(() => {
     let ativo = true
@@ -24,6 +25,7 @@ export default function EditarPerfil() {
       if (!ativo || !res) return
       if (res.cidade) setCidade(res.cidade)
       if (res.nivel) setNivel(res.nivel)
+      if (res.username) setUsername(res.username)
     })
     return () => {
       ativo = false
@@ -33,10 +35,18 @@ export default function EditarPerfil() {
   async function handleSubmit(e) {
     e.preventDefault()
     if (salvando) return
+    setErro('')
     setSalvando(true)
     try {
+      if (username) {
+        const existente = await buscarUsuarioPorUsername(username)
+        if (existente && existente.id !== user.uid) {
+          setErro('Esse nome de usuário já está em uso.')
+          return
+        }
+      }
       await updateProfile(auth.currentUser, { displayName: nome })
-      await atualizarUsuario(user.uid, { cidade, nivel })
+      await atualizarUsuario(user.uid, { cidade, nivel, username })
       navigate('/perfil')
     } finally {
       setSalvando(false)
@@ -59,7 +69,11 @@ export default function EditarPerfil() {
           <label>@usuário</label>
           <div className="input-wrap">
             <AtSign size={18} />
-            <input value={username} onChange={(e) => setUsername(e.target.value)} />
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+              placeholder="seuusuario"
+            />
           </div>
         </div>
 
@@ -86,6 +100,8 @@ export default function EditarPerfil() {
             ))}
           </div>
         </div>
+
+        {erro && <p style={{ color: 'var(--red)', fontSize: 14, marginBottom: 12 }}>{erro}</p>}
 
         <button type="submit" className="btn-primary" style={{ marginTop: 8 }} disabled={salvando}>
           {salvando ? 'Salvando...' : 'Salvar alterações'}
