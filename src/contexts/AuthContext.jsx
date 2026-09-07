@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth'
-import { auth } from '../firebase'
+import { onAuthStateChanged, signOut, signInWithPopup } from 'firebase/auth'
+import { auth, googleProvider } from '../firebase'
 import { sincronizarUsuario, getUsuario, atualizarUsuario, gerarUsernameDisponivel } from '../services/firestore'
 
 async function garantirUsername(user) {
@@ -20,20 +20,8 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [erroRedirect, setErroRedirect] = useState('')
 
   useEffect(() => {
-    // Não bloqueia `loading` — a conclusão do login depende apenas do
-    // onAuthStateChanged abaixo, então um erro aqui nunca trava a tela em carregamento.
-    getRedirectResult(auth).catch((e) => {
-      console.error('Erro ao processar redirect do login com Google:', e)
-      setErroRedirect(
-        e.code === 'auth/account-exists-with-different-credential'
-          ? 'Já existe uma conta com esse e-mail usando login por senha. Entre com e-mail e senha.'
-          : 'Não foi possível concluir o login com Google. Tente novamente.'
-      )
-    })
-
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user)
       setLoading(false)
@@ -51,7 +39,12 @@ export function AuthProvider({ children }) {
 
   const logout = () => signOut(auth)
 
-  const value = { user, logout, loading, erroRedirect, limparErroRedirect: () => setErroRedirect('') }
+  // Precisa ser chamada diretamente no handler de clique, sem await/async antes,
+  // senão o Safari (principalmente em PWA standalone) bloqueia o popup por não
+  // considerar a chamada originada de um gesto do usuário.
+  const signInWithGoogle = () => signInWithPopup(auth, googleProvider)
+
+  const value = { user, logout, loading, signInWithGoogle }
 
   return (
     <AuthContext.Provider value={value}>

@@ -1,17 +1,13 @@
-import { useState, useEffect } from 'react'
-import { signInWithPopup, signInWithRedirect, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, deleteUser } from 'firebase/auth'
-import { auth, googleProvider } from '../firebase'
+import { useState } from 'react'
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, deleteUser } from 'firebase/auth'
+import { auth } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 import { atualizarUsuario, buscarUsuarioPorUsername, deletarUsuario } from '../services/firestore'
-
-function isIOSSafari() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-}
 
 const USERNAME_REGEX = /^[a-z0-9]+$/
 
 export default function Login() {
-  const { erroRedirect, limparErroRedirect } = useAuth()
+  const { signInWithGoogle } = useAuth()
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [confirmarSenha, setConfirmarSenha] = useState('')
@@ -20,21 +16,9 @@ export default function Login() {
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
 
-  useEffect(() => {
-    if (erroRedirect) {
-      setErro(erroRedirect)
-      limparErroRedirect()
-    }
-  }, [erroRedirect, limparErroRedirect])
-
-  const loginGoogle = async () => {
-    setErro('')
+  const handleGoogleLogin = async () => {
     try {
-      if (isIOSSafari()) {
-        await signInWithRedirect(auth, googleProvider)
-      } else {
-        await signInWithPopup(auth, googleProvider)
-      }
+      await signInWithGoogle()
     } catch (e) {
       console.error('Erro ao entrar com Google:', e)
       setErro('Erro ao entrar com Google')
@@ -102,7 +86,7 @@ export default function Login() {
       </div>
 
       <div style={{ width: '100%', maxWidth: '360px', backgroundColor: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
-        <button onClick={loginGoogle} style={{ width: '100%', padding: '14px', border: '1px solid #ddd', borderRadius: '10px', backgroundColor: 'white', fontSize: '16px', fontWeight: '500', cursor: 'pointer', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+        <button onClick={handleGoogleLogin} style={{ width: '100%', padding: '14px', border: '1px solid #ddd', borderRadius: '10px', backgroundColor: 'white', fontSize: '16px', fontWeight: '500', cursor: 'pointer', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
           🔵 Entrar com Google
         </button>
 
