@@ -32,24 +32,31 @@ export default function PeladaDetalhe() {
   const [cancelando, setCancelando] = useState(false)
 
   useEffect(() => {
+    if (!user) return
     let ativo = true
     setLoading(true)
-    getPelada(id).then((res) => {
-      if (!ativo) return
-      setPelada(res)
-      setConfirmados(res?.confirmados ?? [])
-      setNome(res?.nome ?? '')
-      setLocal(res?.local ?? '')
-      setData(res?.data ?? '')
-      setHorario(res?.horario ?? '')
-      setVagas(res?.vagas ?? 0)
-      setNivel(res?.nivel ?? '')
-      setLoading(false)
-    })
+    getPelada(id)
+      .then((res) => {
+        if (!ativo) return
+        setPelada(res)
+        setConfirmados(res?.confirmados ?? [])
+        setNome(res?.nome ?? '')
+        setLocal(res?.local ?? '')
+        setData(res?.data ?? '')
+        setHorario(res?.horario ?? '')
+        setVagas(res?.vagas ?? 0)
+        setNivel(res?.nivel ?? '')
+        setLoading(false)
+      })
+      .catch((e) => {
+        console.error('Erro ao buscar pelada:', e)
+        if (!ativo) return
+        setLoading(false)
+      })
     return () => {
       ativo = false
     }
-  }, [id])
+  }, [id, user])
 
   if (loading) {
     return (

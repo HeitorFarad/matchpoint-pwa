@@ -6,11 +6,13 @@ import Card from '../components/Card'
 import Badge from '../components/Badge'
 import Modal from '../components/Modal'
 import InviteFriendsModal from '../components/InviteFriendsModal'
+import { useAuth } from '../contexts/AuthContext'
 import { getTreino, atualizarTreino, deletarTreino } from '../services/firestore'
 
 export default function TreinoDetalhe() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [treino, setTreino] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -26,17 +28,24 @@ export default function TreinoDetalhe() {
   const [cancelando, setCancelando] = useState(false)
 
   useEffect(() => {
+    if (!user) return
     let ativo = true
     setLoading(true)
-    getTreino(id).then((res) => {
-      if (!ativo) return
-      setTreino(res)
-      setLoading(false)
-    })
+    getTreino(id)
+      .then((res) => {
+        if (!ativo) return
+        setTreino(res)
+        setLoading(false)
+      })
+      .catch((e) => {
+        console.error('Erro ao buscar treino:', e)
+        if (!ativo) return
+        setLoading(false)
+      })
     return () => {
       ativo = false
     }
-  }, [id])
+  }, [id, user])
 
   if (loading) {
     return (
