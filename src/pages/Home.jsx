@@ -44,7 +44,6 @@ export default function Home() {
           <p className="muted" style={{ margin: 0, fontSize: 12, textTransform: 'capitalize' }}>{hoje}</p>
           <h1 style={{ fontSize: 22, marginTop: 4 }}>Peladas 🏐</h1>
         </div>
-        <Avatar name={user.displayName || user.email} size={44} />
       </div>
 
       <div className="app-content" style={{ paddingTop: 4 }}>

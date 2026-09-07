@@ -73,7 +73,13 @@ export default function PeladaDetalhe() {
   }
 
   function abrirParticipante(c) {
-    setParticipanteSelecionado({ id: c.id, name: nomeExibicao(c), ...perfis[c.id] })
+    setParticipanteSelecionado({
+      id: c.id,
+      uid: c.uid || c.id,
+      email: c.email,
+      name: nomeExibicao(c),
+      ...perfis[c.id],
+    })
   }
 
   if (loading) {
@@ -145,7 +151,15 @@ export default function PeladaDetalhe() {
 
   async function convidarAmigo(amigo) {
     await confirmarPelada(pelada.id, { uid: amigo.uid, displayName: amigo.nome, email: amigo.email })
-    setConfirmados((list) => [...list, { id: amigo.uid, name: amigo.nome || amigo.username }])
+    const nome = amigo.nome || amigo.username
+    setConfirmados((list) => [...list, {
+      id: amigo.uid,
+      uid: amigo.uid,
+      name: nome,
+      nome,
+      email: amigo.email,
+      tipo: 'Convidado',
+    }])
   }
 
   async function salvarEdicaoPelada() {

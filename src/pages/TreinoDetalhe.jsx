@@ -63,7 +63,13 @@ export default function TreinoDetalhe() {
   }
 
   function abrirParticipante(c) {
-    setParticipanteSelecionado({ id: c.id, name: nomeExibicao(c), ...perfis[c.id] })
+    setParticipanteSelecionado({
+      id: c.id,
+      uid: c.uid || c.id,
+      email: c.email,
+      name: nomeExibicao(c),
+      ...perfis[c.id],
+    })
   }
 
   if (loading) {
@@ -102,11 +108,20 @@ export default function TreinoDetalhe() {
 
   async function convidarAmigo(amigo) {
     await confirmarTreino(treino.id, { uid: amigo.uid, displayName: amigo.nome, email: amigo.email })
+    const nome = amigo.nome || amigo.username
     setTreino((t) => ({
       ...t,
       confirmados: [
         ...(t.confirmados || []),
-        { id: amigo.uid, name: amigo.nome || amigo.username, tipo: 'Convidado', status: 'confirmou' },
+        {
+          id: amigo.uid,
+          uid: amigo.uid,
+          name: nome,
+          nome,
+          email: amigo.email,
+          tipo: 'Convidado',
+          status: 'confirmou',
+        },
       ],
     }))
   }

@@ -54,9 +54,17 @@ export default function ConvitePublico() {
     setConfirmando(true)
     try {
       await confirmarPelada(pelada.id, user)
+      const nome = user.displayName || user.email
       setPelada((p) => ({
         ...p,
-        confirmados: [...(p.confirmados || []), { id: user.uid, name: user.displayName || user.email }],
+        confirmados: [...(p.confirmados || []), {
+          id: user.uid,
+          uid: user.uid,
+          name: nome,
+          nome,
+          email: user.email,
+          tipo: 'Convidado',
+        }],
       }))
       setConfirmado(true)
     } catch (e) {

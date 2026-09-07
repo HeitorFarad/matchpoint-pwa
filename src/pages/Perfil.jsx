@@ -1,19 +1,25 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { deleteUser } from 'firebase/auth'
 import { Volleyball } from 'lucide-react'
 import Card from '../components/Card'
 import Badge from '../components/Badge'
+import Modal from '../components/Modal'
 import { useAuth } from '../contexts/AuthContext'
-import { getPeladasConfirmadasDoUsuario, getUsuario } from '../services/firestore'
+import { auth } from '../firebase'
+import { getPeladasConfirmadasDoUsuario, getUsuario, deletarUsuario } from '../services/firestore'
 import { formatarData } from '../utils/formatarData'
 
 export default function Perfil() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const nome = user.displayName || user.email
   const [historico, setHistorico] = useState([])
   const [loading, setLoading] = useState(true)
   const [dadosUsuario, setDadosUsuario] = useState(null)
+  const [modalExcluir, setModalExcluir] = useState(false)
+  const [excluindo, setExcluindo] = useState(false)
+  const [erroExcluir, setErroExcluir] = useState('')
 
   useEffect(() => {
     let ativo = true
@@ -37,6 +43,27 @@ export default function Perfil() {
       ativo = false
     }
   }, [user.uid])
+
+  async function handleLogout() {
+    await logout()
+    navigate('/')
+  }
+
+  async function handleExcluirConta() {
+    if (excluindo) return
+    setExcluindo(true)
+    setErroExcluir('')
+    try {
+      await deletarUsuario(user.uid)
+      await deleteUser(auth.currentUser)
+      navigate('/')
+    } catch (e) {
+      console.error('Erro ao excluir conta:', e)
+      setErroExcluir('Não foi possível excluir a conta. Faça login novamente e tente de novo.')
+    } finally {
+      setExcluindo(false)
+    }
+  }
 
   const totalConfirmadas = historico.length
   const organizadas = historico.filter((p) => p.organizadorId === user.uid).length
@@ -124,7 +151,44 @@ export default function Perfil() {
         >
           Editar perfil
         </button>
+
+        <button
+          className="btn-outline btn-outline-full"
+          style={{ marginTop: 12, color: 'var(--red)', borderColor: 'var(--red)' }}
+          onClick={handleLogout}
+        >
+          Sair da conta
+        </button>
+
+        <p
+          onClick={() => setModalExcluir(true)}
+          className="muted"
+          style={{ textAlign: 'center', marginTop: 16, fontSize: 13, cursor: 'pointer' }}
+        >
+          Excluir conta
+        </p>
       </div>
+
+      <Modal open={modalExcluir} onClose={() => setModalExcluir(false)} variant="center">
+        <div className="confirm-dialog">
+          <p>Tem certeza? Essa ação é irreversível.</p>
+          {erroExcluir && (
+            <p style={{ color: 'var(--red)', fontSize: 13, marginTop: -8 }}>{erroExcluir}</p>
+          )}
+          <div className="row">
+            <button
+              className="btn-outline"
+              onClick={() => setModalExcluir(false)}
+              disabled={excluindo}
+            >
+              Cancelar
+            </button>
+            <button className="btn-danger" onClick={handleExcluirConta} disabled={excluindo}>
+              {excluindo ? 'Excluindo...' : 'Excluir'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

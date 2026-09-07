@@ -52,8 +52,16 @@ export async function confirmarPelada(peladaId, user) {
   const pelada = snap.data()
   const jaConfirmado = pelada.confirmados?.some(c => c.id === user.uid)
   if (jaConfirmado) return
+  const nome = user.displayName || user.email
   await updateDoc(ref, {
-    confirmados: [...(pelada.confirmados || []), { id: user.uid, name: user.displayName || user.email }]
+    confirmados: [...(pelada.confirmados || []), {
+      id: user.uid,
+      uid: user.uid,
+      name: nome,
+      nome,
+      email: user.email,
+      tipo: 'Convidado',
+    }]
   })
 }
 
@@ -98,8 +106,17 @@ export async function confirmarTreino(treinoId, user) {
   const treino = snap.data()
   const jaConfirmado = treino.confirmados?.some(c => c.id === user.uid)
   if (jaConfirmado) return
+  const nome = user.displayName || user.email
   await updateDoc(ref, {
-    confirmados: [...(treino.confirmados || []), { id: user.uid, name: user.displayName || user.email, tipo: 'Convidado', status: 'confirmou' }]
+    confirmados: [...(treino.confirmados || []), {
+      id: user.uid,
+      uid: user.uid,
+      name: nome,
+      nome,
+      email: user.email,
+      tipo: 'Convidado',
+      status: 'confirmou',
+    }]
   })
 }
 
@@ -127,6 +144,19 @@ export async function buscarUsuarioPorUsername(username) {
   if (snap.empty) return null
   const d = snap.docs[0]
   return { id: d.id, ...d.data() }
+}
+
+export async function buscarUsuarioPorEmail(email) {
+  if (!email) return null
+  const q = query(collection(db, 'usuarios'), where('email', '==', email))
+  const snap = await getDocs(q)
+  if (snap.empty) return null
+  const d = snap.docs[0]
+  return { id: d.id, ...d.data() }
+}
+
+export async function deletarUsuario(uid) {
+  await deleteDoc(doc(db, 'usuarios', uid))
 }
 
 export async function buscarUsuariosPorIds(ids) {
