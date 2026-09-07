@@ -11,24 +11,31 @@ export default function ConvitePublico() {
   const { user } = useAuth()
   const [pelada, setPelada] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState(null)
   const [confirmando, setConfirmando] = useState(false)
   const [confirmado, setConfirmado] = useState(false)
 
   useEffect(() => {
     let ativo = true
     setLoading(true)
+    setErro(null)
     getPelada(id)
       .then((res) => {
         if (!ativo) return
-        setPelada(res)
-        if (user && res?.confirmados?.some((c) => c.id === user.uid)) {
-          setConfirmado(true)
+        if (!res) {
+          setErro('nao-encontrado')
+        } else {
+          setPelada(res)
+          if (user && res.confirmados?.some((c) => c.id === user.uid)) {
+            setConfirmado(true)
+          }
         }
         setLoading(false)
       })
       .catch((e) => {
         console.error('Erro ao buscar convite:', e)
         if (!ativo) return
+        setErro(e.code === 'permission-denied' ? 'permissao' : 'nao-encontrado')
         setLoading(false)
       })
     return () => {
@@ -42,11 +49,7 @@ export default function ConvitePublico() {
   }
 
   async function handleConfirmar() {
-    if (!user) {
-      handleEntrar()
-      return
-    }
-    if (confirmando || confirmado) return
+    if (!user || confirmando || confirmado) return
     setConfirmando(true)
     try {
       await confirmarPelada(pelada.id, user)
@@ -70,7 +73,31 @@ export default function ConvitePublico() {
     )
   }
 
-  if (!pelada) {
+  if (erro === 'permissao') {
+    return (
+      <div
+        className="app-content"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100svh',
+          textAlign: 'center',
+          gap: 16,
+        }}
+      >
+        <p className="empty-state" style={{ padding: 0 }}>
+          Não foi possível carregar este convite sem estar logado.
+        </p>
+        <button className="btn-primary" style={{ maxWidth: 260 }} onClick={handleEntrar}>
+          Fazer login para ver o convite
+        </button>
+      </div>
+    )
+  }
+
+  if (erro === 'nao-encontrado' || !pelada) {
     return (
       <div className="app-content">
         <p className="empty-state">Convite não encontrado.</p>
@@ -144,29 +171,14 @@ export default function ConvitePublico() {
                 Você confirmou presença! Nos vemos lá 🏐
               </p>
             </>
-          ) : (
+          ) : user ? (
             <button className="btn-primary" onClick={handleConfirmar} disabled={confirmando}>
               {confirmando ? 'Confirmando...' : 'Quero ir! Confirmar presença'}
             </button>
-          )}
-          {!user && !confirmado && (
-            <p style={{ textAlign: 'center', marginTop: 16 }}>
-              <button
-                type="button"
-                onClick={handleEntrar}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  color: 'var(--primary)',
-                  fontWeight: 600,
-                  fontSize: 14,
-                  cursor: 'pointer',
-                }}
-              >
-                Já tem conta? Entrar
-              </button>
-            </p>
+          ) : (
+            <button className="btn-primary" onClick={handleEntrar}>
+              Fazer login para confirmar
+            </button>
           )}
         </div>
       </div>
