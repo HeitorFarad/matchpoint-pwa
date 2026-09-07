@@ -91,6 +91,15 @@ export async function confirmarPelada(peladaId, user) {
   })
 }
 
+export async function cancelarPresencaPelada(peladaId, uid) {
+  const ref = doc(db, 'peladas', peladaId)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Pelada não encontrada.')
+  const pelada = snap.data()
+  const confirmados = (pelada.confirmados || []).filter((c) => (c.uid || c.id) !== uid)
+  await updateDoc(ref, { confirmados })
+}
+
 // ── TREINOS ──────────────────────────────────────────
 
 export async function getTreinosDoUsuario(uid) {

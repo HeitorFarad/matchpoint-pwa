@@ -9,7 +9,7 @@ import InviteFriendsModal from '../components/InviteFriendsModal'
 import ParticipanteModal from '../components/ParticipanteModal'
 import Toast from '../components/Toast'
 import { useAuth } from '../contexts/AuthContext'
-import { getPelada, atualizarPelada, deletarPelada, confirmarPelada, buscarUsuariosPorIds } from '../services/firestore'
+import { getPelada, atualizarPelada, deletarPelada, confirmarPelada, cancelarPresencaPelada, buscarUsuariosPorIds } from '../services/firestore'
 import { formatarData } from '../utils/formatarData'
 
 const niveis = ['Iniciante', 'Intermediário', 'Avançado', 'Aberto']
@@ -36,6 +36,8 @@ export default function PeladaDetalhe() {
   const [toast, setToast] = useState('')
   const [perfis, setPerfis] = useState({})
   const [participanteSelecionado, setParticipanteSelecionado] = useState(null)
+  const [processandoPresenca, setProcessandoPresenca] = useState(false)
+  const [erroPresenca, setErroPresenca] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -102,11 +104,41 @@ export default function PeladaDetalhe() {
   const jaConfirmado = confirmados.some((c) => c.id === user.uid)
   const lotada = confirmados.length >= vagas
 
-  function toggleConfirmacao() {
-    if (jaConfirmado) {
-      setConfirmados((list) => list.filter((c) => c.id !== user.uid))
-    } else {
-      setConfirmados((list) => [...list, { id: user.uid, name: user.displayName || user.email }])
+  async function confirmarPresenca() {
+    if (processandoPresenca) return
+    setProcessandoPresenca(true)
+    setErroPresenca('')
+    try {
+      await confirmarPelada(pelada.id, user)
+      const nome = user.displayName || user.email
+      setConfirmados((list) => [...list, {
+        id: user.uid,
+        uid: user.uid,
+        name: nome,
+        nome,
+        email: user.email,
+        tipo: 'Convidado',
+      }])
+    } catch (e) {
+      console.error('Erro ao confirmar presença:', e)
+      setErroPresenca('Não foi possível confirmar sua presença. Tente novamente.')
+    } finally {
+      setProcessandoPresenca(false)
+    }
+  }
+
+  async function cancelarPresenca() {
+    if (processandoPresenca) return
+    setProcessandoPresenca(true)
+    setErroPresenca('')
+    try {
+      await cancelarPresencaPelada(pelada.id, user.uid)
+      setConfirmados((list) => list.filter((c) => (c.uid || c.id) !== user.uid))
+    } catch (e) {
+      console.error('Erro ao cancelar presença:', e)
+      setErroPresenca('Não foi possível cancelar sua presença. Tente novamente.')
+    } finally {
+      setProcessandoPresenca(false)
     }
   }
 
@@ -255,13 +287,18 @@ export default function PeladaDetalhe() {
 
         <div style={{ marginTop: 16 }}>
           {jaConfirmado ? (
-            <button className="btn-danger" onClick={toggleConfirmacao}>
-              Cancelar presença
+            <button className="btn-danger" onClick={cancelarPresenca} disabled={processandoPresenca}>
+              {processandoPresenca ? 'Cancelando...' : 'Cancelar presença'}
             </button>
           ) : (
-            <button className="btn-primary" onClick={toggleConfirmacao} disabled={lotada}>
-              {lotada ? 'Entrar na lista de espera' : 'Confirmar presença'}
+            <button className="btn-primary" onClick={confirmarPresenca} disabled={lotada || processandoPresenca}>
+              {processandoPresenca ? 'Confirmando...' : lotada ? 'Entrar na lista de espera' : 'Confirmar presença'}
             </button>
+          )}
+          {erroPresenca && (
+            <p style={{ color: 'var(--red)', fontSize: 13, marginTop: 8, textAlign: 'center' }}>
+              {erroPresenca}
+            </p>
           )}
         </div>
       </div>

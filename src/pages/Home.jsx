@@ -11,6 +11,14 @@ const hoje = new Date().toLocaleDateString('pt-BR', {
   weekday: 'long', day: 'numeric', month: 'long',
 })
 
+function hojeISO() {
+  const d = new Date()
+  const ano = d.getFullYear()
+  const mes = String(d.getMonth() + 1).padStart(2, '0')
+  const dia = String(d.getDate()).padStart(2, '0')
+  return `${ano}-${mes}-${dia}`
+}
+
 export default function Home() {
   const { user } = useAuth()
   const [peladas, setPeladas] = useState([])
@@ -40,8 +48,12 @@ export default function Home() {
     }
   }, [user])
 
-  const destaque = peladas[0]
-  const outras = peladas.slice(1)
+  const peladasOrdenadas = [...peladas].sort((a, b) =>
+    `${a.data || ''}T${a.horario || ''}`.localeCompare(`${b.data || ''}T${b.horario || ''}`)
+  )
+  const hojeIso = hojeISO()
+  const destaque = peladasOrdenadas.find((p) => (p.data || '') >= hojeIso)
+  const outras = peladasOrdenadas.filter((p) => p.id !== destaque?.id)
 
   if (loading) return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
