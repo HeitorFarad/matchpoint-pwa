@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { signInWithPopup, signInWithRedirect, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
+import { useNavigate } from 'react-router-dom'
+import { signInWithPopup, signInWithRedirect, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, deleteUser } from 'firebase/auth'
 import { auth, googleProvider } from '../firebase'
-import { atualizarUsuario, buscarUsuarioPorUsername } from '../services/firestore'
+import { atualizarUsuario, buscarUsuarioPorUsername, deletarUsuario } from '../services/firestore'
 
 function isIOSSafari() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 }
 
 export default function Login() {
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [confirmarSenha, setConfirmarSenha] = useState('')
@@ -46,16 +48,26 @@ export default function Login() {
     setSalvando(true)
     try {
       if (isRegistro) {
-        const existente = await buscarUsuarioPorUsername(username)
-        if (existente) {
-          setErro('Esse nome de usuário já está em uso.')
-          return
-        }
         const cred = await createUserWithEmailAndPassword(auth, email, senha)
-        await updateProfile(cred.user, { displayName: username })
-        await atualizarUsuario(cred.user.uid, { nome: username, email, username })
+        try {
+          const existente = await buscarUsuarioPorUsername(username)
+          if (existente && existente.id !== cred.user.uid) {
+            setErro('Username já está em uso.')
+            await deletarUsuario(cred.user.uid).catch(() => {})
+            await deleteUser(cred.user)
+            return
+          }
+          await updateProfile(cred.user, { displayName: username })
+          await atualizarUsuario(cred.user.uid, { nome: username, email, username })
+          navigate('/')
+        } catch (erroInterno) {
+          console.error('Erro ao finalizar cadastro:', erroInterno)
+          setErro('Erro ao criar conta')
+          await deleteUser(cred.user).catch(() => {})
+        }
       } else {
         await signInWithEmailAndPassword(auth, email, senha)
+        navigate('/')
       }
     } catch (e) {
       setErro(isRegistro ? 'Erro ao criar conta' : 'E-mail ou senha incorretos')
