@@ -8,7 +8,7 @@ import Modal from '../components/Modal'
 import { useAuth } from '../contexts/AuthContext'
 import { auth } from '../firebase'
 import { getPeladasConfirmadasDoUsuario, getUsuario, deletarUsuario } from '../services/firestore'
-import { solicitarPermissaoNotificacao } from '../services/onesignal'
+import { solicitarPermissaoNotificacao, verificarPermissaoNotificacao } from '../services/onesignal'
 import { formatarData } from '../utils/formatarData'
 
 export default function Perfil() {
@@ -23,6 +23,7 @@ export default function Perfil() {
   const [erroExcluir, setErroExcluir] = useState('')
   const [ativandoNotificacoes, setAtivandoNotificacoes] = useState(false)
   const [notificacaoStatus, setNotificacaoStatus] = useState('')
+  const [notificacoesAtivas, setNotificacoesAtivas] = useState(false)
 
   useEffect(() => {
     let ativo = true
@@ -47,22 +48,33 @@ export default function Perfil() {
     }
   }, [user.uid])
 
+  useEffect(() => {
+    let ativo = true
+    verificarPermissaoNotificacao().then((ativa) => {
+      if (!ativo) return
+      setNotificacoesAtivas(ativa)
+    })
+    return () => {
+      ativo = false
+    }
+  }, [])
+
   async function handleLogout() {
     await logout()
     navigate('/')
   }
 
   async function handleAtivarNotificacoes() {
-    if (ativandoNotificacoes) return
+    if (ativandoNotificacoes || notificacoesAtivas) return
     setAtivandoNotificacoes(true)
     setNotificacaoStatus('')
     try {
       const concedida = await solicitarPermissaoNotificacao()
-      setNotificacaoStatus(
-        concedida
-          ? 'Notificações ativadas! ✓'
-          : 'Permissão não concedida. Você pode ativar depois nas configurações do navegador.'
-      )
+      if (concedida) {
+        setNotificacoesAtivas(true)
+      } else {
+        setNotificacaoStatus('Permissão não concedida. Você pode ativar depois nas configurações do navegador.')
+      }
     } finally {
       setAtivandoNotificacoes(false)
     }
@@ -163,14 +175,20 @@ export default function Perfil() {
           )}
         </Card>
 
-        <button
-          className="btn-outline btn-outline-full"
-          style={{ marginTop: 16 }}
-          onClick={handleAtivarNotificacoes}
-          disabled={ativandoNotificacoes}
-        >
-          {ativandoNotificacoes ? 'Ativando...' : 'Ativar notificações'}
-        </button>
+        {notificacoesAtivas ? (
+          <button className="btn-primary" style={{ marginTop: 16, cursor: 'default' }}>
+            Notificações ativas ✓
+          </button>
+        ) : (
+          <button
+            className="btn-outline btn-outline-full"
+            style={{ marginTop: 16 }}
+            onClick={handleAtivarNotificacoes}
+            disabled={ativandoNotificacoes}
+          >
+            {ativandoNotificacoes ? 'Ativando...' : 'Ativar notificações'}
+          </button>
+        )}
         {notificacaoStatus && (
           <p className="muted" style={{ textAlign: 'center', marginTop: 8, fontSize: 13 }}>
             {notificacaoStatus}

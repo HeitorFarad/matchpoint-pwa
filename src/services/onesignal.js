@@ -33,6 +33,18 @@ export function solicitarPermissaoNotificacao() {
   })
 }
 
+// Lê o estado atual da permissão de notificações (true/false) sem exibir
+// nenhum prompt — usado para refletir o estado real do botão em Perfil.jsx
+// em vez de resetar para "desativado" a cada re-render.
+export function verificarPermissaoNotificacao() {
+  return new Promise((resolve) => {
+    window.OneSignalDeferred = window.OneSignalDeferred || []
+    window.OneSignalDeferred.push((OneSignal) => {
+      resolve(!!OneSignal.Notifications.permission)
+    })
+  })
+}
+
 export function salvarTokenUsuario(userId) {
   if (!userId) return
   window.OneSignalDeferred = window.OneSignalDeferred || []
