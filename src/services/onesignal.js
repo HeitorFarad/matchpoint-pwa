@@ -1,5 +1,4 @@
 const ONESIGNAL_APP_ID = 'e886018e-dc6d-4aa4-be0e-d87553b5c815'
-const ONESIGNAL_REST_API_KEY = import.meta.env.VITE_ONESIGNAL_REST_API_KEY
 
 export function initOneSignal() {
   window.OneSignalDeferred = window.OneSignalDeferred || []
@@ -44,33 +43,21 @@ export function salvarTokenUsuario(userId) {
   })
 }
 
-// ATENÇÃO: isto chama a API REST do OneSignal diretamente do navegador usando a
-// REST API Key. Essa chave é secreta — qualquer pessoa pode lê-la no bundle JS
-// público e usá-la para mandar notificação para toda a base de usuários. Isso é
-// aceitável apenas enquanto VITE_ONESIGNAL_REST_API_KEY continuar como placeholder.
-// Antes de colocar a chave real, mova esta chamada para um backend/Cloud Function
-// e faça o cliente chamar esse endpoint em vez da API do OneSignal diretamente.
+// Passa pela função serverless em api/enviar-notificacao.js em vez de chamar a
+// API do OneSignal direto do navegador — a REST API Key fica só no servidor,
+// nunca no bundle público do cliente.
 export async function enviarNotificacao(titulo, mensagem, userIds) {
   if (!userIds || userIds.length === 0) return
-  if (!ONESIGNAL_REST_API_KEY || ONESIGNAL_REST_API_KEY === 'ADICIONAR_DEPOIS') {
-    console.warn('VITE_ONESIGNAL_REST_API_KEY não configurada — notificação não enviada.')
-    return
-  }
   try {
-    await fetch('https://onesignal.com/api/v1/notifications', {
+    const resposta = await fetch('/api/enviar-notificacao', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        Authorization: `Basic ${ONESIGNAL_REST_API_KEY}`,
-      },
-      body: JSON.stringify({
-        app_id: ONESIGNAL_APP_ID,
-        include_aliases: { external_id: userIds },
-        target_channel: 'push',
-        headings: { en: titulo },
-        contents: { en: mensagem },
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titulo, mensagem, userIds }),
     })
+    if (!resposta.ok) {
+      const erro = await resposta.json().catch(() => ({}))
+      console.error('Erro ao enviar notificação:', erro)
+    }
   } catch (e) {
     console.error('Erro ao enviar notificação OneSignal:', e)
   }
