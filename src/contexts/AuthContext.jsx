@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { onAuthStateChanged, signOut, signInWithPopup } from 'firebase/auth'
 import { auth, googleProvider } from '../firebase'
 import { sincronizarUsuario, getUsuario, atualizarUsuario, gerarUsernameDisponivel } from '../services/firestore'
+import { salvarTokenUsuario } from '../services/onesignal'
 
 async function garantirUsername(user) {
   const dados = await getUsuario(user.uid)
@@ -31,6 +32,7 @@ export function AuthProvider({ children }) {
           .catch((e) => {
             console.error('Erro ao sincronizar usuário:', e)
           })
+        salvarTokenUsuario(user.uid)
       }
     })
 

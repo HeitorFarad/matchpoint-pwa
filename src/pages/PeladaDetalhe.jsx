@@ -10,6 +10,7 @@ import ParticipanteModal from '../components/ParticipanteModal'
 import Toast from '../components/Toast'
 import { useAuth } from '../contexts/AuthContext'
 import { getPelada, atualizarPelada, deletarPelada, confirmarPelada, cancelarPresencaPelada, buscarUsuariosPorIds } from '../services/firestore'
+import { enviarNotificacao } from '../services/onesignal'
 import { formatarData } from '../utils/formatarData'
 
 const niveis = ['Iniciante', 'Intermediário', 'Avançado', 'Aberto']
@@ -119,6 +120,13 @@ export default function PeladaDetalhe() {
         email: user.email,
         tipo: 'Convidado',
       }])
+      if (pelada.organizadorId && pelada.organizadorId !== user.uid) {
+        enviarNotificacao(
+          'Nova confirmação! 🎉',
+          `${nome} confirmou presença em ${pelada.nome}`,
+          [pelada.organizadorId]
+        )
+      }
     } catch (e) {
       console.error('Erro ao confirmar presença:', e)
       setErroPresenca('Não foi possível confirmar sua presença. Tente novamente.')
