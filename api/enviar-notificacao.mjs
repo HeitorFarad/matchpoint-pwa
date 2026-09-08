@@ -36,12 +36,14 @@ export default async function handler(req, res) {
     return
   }
 
+  console.log('ONESIGNAL_REST_API_KEY encontrada, começa com:', restApiKey.slice(0, 10))
+
   try {
     const resposta = await fetch('https://onesignal.com/api/v1/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
-        Authorization: `Basic ${restApiKey}`,
+        Authorization: `Bearer ${restApiKey}`,
       },
       body: JSON.stringify({
         app_id: appId,
