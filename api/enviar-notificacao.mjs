@@ -1,23 +1,20 @@
-import { verificarToken } from './_firebaseAdmin.mjs'
+import { verificarToken } from './_verificarIdToken.mjs'
 
 // Vercel serverless function — mantém a REST API Key do OneSignal só no
 // servidor. Nunca leia essa chave via VITE_* (isso a colocaria no bundle
 // público do cliente); use process.env.ONESIGNAL_REST_API_KEY, configurada
 // nas variáveis de ambiente do projeto no dashboard da Vercel.
+//
+// A autenticação verifica o ID token do Firebase manualmente (ver
+// _verificarIdToken.mjs) em vez de usar firebase-admin — esse pacote puxa o
+// "jose" (ESM-only) e quebra o bundler Node da Vercel com ERR_REQUIRE_ESM.
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Método não permitido' })
     return
   }
 
-  let usuario
-  try {
-    usuario = await verificarToken(req)
-  } catch (e) {
-    console.error('Erro ao configurar verificação de token do Firebase:', e)
-    res.status(500).json({ error: 'Autenticação não configurada no servidor.' })
-    return
-  }
+  const usuario = await verificarToken(req)
   if (!usuario) {
     res.status(401).json({ error: 'Não autenticado.' })
     return
