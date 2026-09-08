@@ -1,3 +1,5 @@
+import { auth } from '../firebase'
+
 const ONESIGNAL_APP_ID = 'e886018e-dc6d-4aa4-be0e-d87553b5c815'
 
 export function initOneSignal() {
@@ -45,13 +47,23 @@ export function salvarTokenUsuario(userId) {
 
 // Passa pela função serverless em api/enviar-notificacao.js em vez de chamar a
 // API do OneSignal direto do navegador — a REST API Key fica só no servidor,
-// nunca no bundle público do cliente.
+// nunca no bundle público do cliente. O endpoint exige um usuário do Firebase
+// autenticado, então manda o ID token no header Authorization.
 export async function enviarNotificacao(titulo, mensagem, userIds) {
   if (!userIds || userIds.length === 0) return
+  const usuarioAtual = auth.currentUser
+  if (!usuarioAtual) {
+    console.warn('Usuário não autenticado — notificação não enviada.')
+    return
+  }
   try {
+    const idToken = await usuarioAtual.getIdToken()
     const resposta = await fetch('/api/enviar-notificacao', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
+      },
       body: JSON.stringify({ titulo, mensagem, userIds }),
     })
     if (!resposta.ok) {

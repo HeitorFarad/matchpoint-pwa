@@ -1,3 +1,5 @@
+import { verificarToken } from './_firebaseAdmin.js'
+
 // Vercel serverless function — mantém a REST API Key do OneSignal só no
 // servidor. Nunca leia essa chave via VITE_* (isso a colocaria no bundle
 // público do cliente); use process.env.ONESIGNAL_REST_API_KEY, configurada
@@ -5,6 +7,19 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Método não permitido' })
+    return
+  }
+
+  let usuario
+  try {
+    usuario = await verificarToken(req)
+  } catch (e) {
+    console.error('Erro ao configurar verificação de token do Firebase:', e)
+    res.status(500).json({ error: 'Autenticação não configurada no servidor.' })
+    return
+  }
+  if (!usuario) {
+    res.status(401).json({ error: 'Não autenticado.' })
     return
   }
 
