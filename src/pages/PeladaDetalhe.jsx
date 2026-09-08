@@ -120,11 +120,14 @@ export default function PeladaDetalhe() {
         email: user.email,
         tipo: 'Convidado',
       }])
-      if (pelada.organizadorId && pelada.organizadorId !== user.uid) {
+      const idsParaNotificar = confirmados
+        .map((c) => c.uid || c.id)
+        .filter((uid) => uid && uid !== user.uid)
+      if (idsParaNotificar.length > 0) {
         enviarNotificacao(
           'Nova confirmação! 🎉',
-          `${nome} confirmou presença em ${pelada.nome}`,
-          [pelada.organizadorId]
+          `${nome} confirmou presença em ${pelada.nome}!`,
+          idsParaNotificar
         )
       }
     } catch (e) {
