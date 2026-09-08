@@ -57,7 +57,7 @@ export function salvarTokenUsuario(userId) {
   })
 }
 
-// Passa pela função serverless em api/enviar-notificacao.js em vez de chamar a
+// Passa pela função serverless em api/enviar-notificacao.mjs em vez de chamar a
 // API do OneSignal direto do navegador — a REST API Key fica só no servidor,
 // nunca no bundle público do cliente. O endpoint exige um usuário do Firebase
 // autenticado, então manda o ID token no header Authorization.

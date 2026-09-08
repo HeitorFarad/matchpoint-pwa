@@ -1,4 +1,4 @@
-import { verificarToken } from './_firebaseAdmin.js'
+import { verificarToken } from './_firebaseAdmin.mjs'
 
 // Vercel serverless function — mantém a REST API Key do OneSignal só no
 // servidor. Nunca leia essa chave via VITE_* (isso a colocaria no bundle
