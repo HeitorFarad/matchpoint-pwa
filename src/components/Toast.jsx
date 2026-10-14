@@ -3,10 +3,11 @@ export default function Toast({ message }) {
 
   return (
     <div
+      role="status"
       style={{
         position: 'fixed',
         left: '50%',
-        bottom: 'calc(84px + env(safe-area-inset-bottom))',
+        bottom: 'calc(150px + env(safe-area-inset-bottom))',
         transform: 'translateX(-50%)',
         background: 'rgba(17, 17, 17, 0.9)',
         color: '#fff',

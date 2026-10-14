@@ -1,61 +1,36 @@
-import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { DadosProvider } from './contexts/DadosContext'
 import BottomNav from './components/BottomNav'
-import Home from './pages/Home'
-import CriarPelada from './pages/CriarPelada'
-import PeladaDetalhe from './pages/PeladaDetalhe'
-import ConvitePublico from './pages/ConvitePublico'
-import CriarTreino from './pages/CriarTreino'
-import TreinoDetalhe from './pages/TreinoDetalhe'
-import Amigos from './pages/Amigos'
-import Pendencias from './pages/Pendencias'
-import Perfil from './pages/Perfil'
-import EditarPerfil from './pages/EditarPerfil'
 import Login from './pages/Login'
+import Hoje from './pages/Hoje'
+import Treino from './pages/Treino'
+import Historico from './pages/Historico'
+import SessaoDetalhe from './pages/SessaoDetalhe'
+import Progresso from './pages/Progresso'
+import Ajustes from './pages/Ajustes'
 
 function Layout() {
   const { user } = useAuth()
   const location = useLocation()
-  const navigate = useNavigate()
-  const semNav = location.pathname.startsWith('/convite/')
+  // Na tela do treino a barra de baixo dá lugar ao timer e ao botão de finalizar.
+  const semNav = location.pathname.startsWith('/dia/')
 
-  useEffect(() => {
-    if (!user) return
-    const redirect = sessionStorage.getItem('convite_redirect')
-    if (redirect) {
-      sessionStorage.removeItem('convite_redirect')
-      navigate(redirect)
-    }
-  }, [user, navigate])
-
-  if (!user) {
-    if (semNav) {
-      return (
-        <Routes>
-          <Route path="/convite/:id" element={<ConvitePublico />} />
-        </Routes>
-      )
-    }
-    return <Login />
-  }
+  if (!user) return <Login />
 
   return (
-    <>
+    <DadosProvider>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/criar-pelada" element={<CriarPelada />} />
-        <Route path="/pelada/:id" element={<PeladaDetalhe />} />
-        <Route path="/convite/:id" element={<ConvitePublico />} />
-        <Route path="/criar-treino" element={<CriarTreino />} />
-        <Route path="/treino/:id" element={<TreinoDetalhe />} />
-        <Route path="/amigos" element={<Amigos />} />
-        <Route path="/pendencias" element={<Pendencias />} />
-        <Route path="/perfil" element={<Perfil />} />
-        <Route path="/editar-perfil" element={<EditarPerfil />} />
+        <Route path="/" element={<Hoje />} />
+        <Route path="/dia/:diaId" element={<Treino />} />
+        <Route path="/historico" element={<Historico />} />
+        <Route path="/sessao/:id" element={<SessaoDetalhe />} />
+        <Route path="/progresso" element={<Progresso />} />
+        <Route path="/ajustes" element={<Ajustes />} />
+        <Route path="*" element={<Hoje />} />
       </Routes>
       {!semNav && <BottomNav />}
-    </>
+    </DadosProvider>
   )
 }
 

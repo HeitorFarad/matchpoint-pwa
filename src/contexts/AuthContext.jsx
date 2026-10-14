@@ -1,16 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { onAuthStateChanged, signOut, signInWithPopup } from 'firebase/auth'
 import { auth, googleProvider } from '../firebase'
-import { sincronizarUsuario, getUsuario, atualizarUsuario, gerarUsernameDisponivel } from '../services/firestore'
-import { salvarTokenUsuario, solicitarPermissaoNotificacao } from '../services/onesignal'
-
-async function garantirUsername(user) {
-  const dados = await getUsuario(user.uid)
-  if (dados?.username) return
-  const username = await gerarUsernameDisponivel((user.email || '').split('@')[0])
-  if (!username) return
-  await atualizarUsuario(user.uid, { username })
-}
 
 const AuthContext = createContext()
 
@@ -26,15 +16,6 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user)
       setLoading(false)
-      if (user) {
-        sincronizarUsuario(user)
-          .then(() => garantirUsername(user))
-          .catch((e) => {
-            console.error('Erro ao sincronizar usuário:', e)
-          })
-        salvarTokenUsuario(user.uid)
-        solicitarPermissaoNotificacao()
-      }
     })
 
     return unsubscribe

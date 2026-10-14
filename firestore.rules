@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // App de treino: cada usuário só lê e grava os próprios dados
+    // (usuarios/{uid}, usuarios/{uid}/sessoes, usuarios/{uid}/medidas).
+    match /usuarios/{uid}/{documento=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

@@ -7,13 +7,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons.svg'],
       manifest: {
-        name: 'MatchPoint',
-        short_name: 'MatchPoint',
-        description: 'Organize peladas e treinos fixos de futevôlei',
-        theme_color: '#1db954',
-        background_color: '#f5f5f5',
+        name: 'Treino · Futevôlei + Academia',
+        short_name: 'Treino',
+        description: 'Programa de 12 semanas com registro de cargas',
+        lang: 'pt-BR',
+        theme_color: '#22252b',
+        background_color: '#f5f4f1',
         display: 'standalone',
         start_url: '/',
         icons: [
@@ -29,7 +29,10 @@ export default defineConfig({
             purpose: 'any maskable'
           }
         ]
-      }
+      },
+      workbox: {
+        navigateFallback: '/index.html',
+      },
     })
   ],
 })

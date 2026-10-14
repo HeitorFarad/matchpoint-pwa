@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Users, User } from 'lucide-react'
+import { Dumbbell, History, TrendingUp, Settings } from 'lucide-react'
 
 const tabs = [
-  { to: '/', label: 'Home', icon: Home, end: true },
-  { to: '/amigos', label: 'Amigos', icon: Users, end: false },
-  { to: '/perfil', label: 'Perfil', icon: User, end: false },
+  { to: '/', label: 'Treino', icon: Dumbbell, end: true },
+  { to: '/historico', label: 'Histórico', icon: History, end: false },
+  { to: '/progresso', label: 'Progresso', icon: TrendingUp, end: false },
+  { to: '/ajustes', label: 'Ajustes', icon: Settings, end: false },
 ]
 
 export default function BottomNav() {
