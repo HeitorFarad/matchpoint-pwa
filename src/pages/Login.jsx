@@ -4,6 +4,26 @@ import { Dumbbell } from 'lucide-react'
 import { auth } from '../firebase'
 import { useAuth } from '../contexts/AuthContext'
 
+const MENSAGENS = {
+  'auth/email-already-in-use': 'Já existe uma conta com esse e-mail. Toque em "Já tenho conta" para entrar (ou use o Google, se foi assim que você criou).',
+  'auth/invalid-credential': 'E-mail ou senha incorretos.',
+  'auth/wrong-password': 'E-mail ou senha incorretos.',
+  'auth/user-not-found': 'Não existe conta com esse e-mail. Toque em "Criar conta nova".',
+  'auth/invalid-email': 'E-mail inválido.',
+  'auth/weak-password': 'A senha deve ter pelo menos 6 caracteres.',
+  'auth/too-many-requests': 'Muitas tentativas. Espere um pouco e tente de novo.',
+  'auth/network-request-failed': 'Sem internet. O primeiro login precisa de conexão.',
+  'auth/unauthorized-domain': 'Este endereço não está autorizado no Firebase (Authentication → Configurações → Domínios autorizados).',
+  'auth/popup-blocked': 'O navegador bloqueou a janela do Google. Libere pop-ups para este site.',
+  'auth/popup-closed-by-user': '',
+  'auth/cancelled-popup-request': '',
+}
+
+function mensagem(e, padrao) {
+  const m = MENSAGENS[e?.code]
+  return m ?? `${padrao} (${e?.code || 'erro desconhecido'})`
+}
+
 export default function Login() {
   const { signInWithGoogle } = useAuth()
   const [email, setEmail] = useState('')
@@ -16,7 +36,7 @@ export default function Login() {
     setErro('')
     signInWithGoogle().catch((e) => {
       console.error('Erro ao entrar com Google:', e)
-      setErro('Erro ao entrar com Google')
+      setErro(mensagem(e, 'Erro ao entrar com Google'))
     })
   }
 
@@ -32,8 +52,9 @@ export default function Login() {
     try {
       if (isRegistro) await createUserWithEmailAndPassword(auth, email, senha)
       else await signInWithEmailAndPassword(auth, email, senha)
-    } catch {
-      setErro(isRegistro ? 'Erro ao criar conta' : 'E-mail ou senha incorretos')
+    } catch (e) {
+      console.error(e)
+      setErro(mensagem(e, isRegistro ? 'Erro ao criar conta' : 'Erro ao entrar'))
     } finally {
       setSalvando(false)
     }
