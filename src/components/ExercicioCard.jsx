@@ -2,6 +2,7 @@ import { Check, ChevronDown, CirclePlay, Plus } from 'lucide-react'
 import { EXERCICIOS } from '../data/programa'
 import { alvoReps, textoDescanso, textoPrescricao } from '../lib/progressao'
 import { num } from '../lib/formatar'
+import Ilustracao from './Ilustracao'
 
 // item = { series: [{ kg, reps, seg, ok }], extra } — valores como texto
 // enquanto o treino está aberto.
@@ -70,6 +71,8 @@ export default function ExercicioCard({ exId, n, p, item, sugestao, ultimo, onCh
           {p.texto && <p className="ex-texto">{p.texto[0].toUpperCase() + p.texto.slice(1)}</p>}
         </div>
       </div>
+
+      <Ilustracao exId={exId} />
 
       {sugestao && (
         <div className={`sugestao${sugestao.subir ? ' subir' : ''}`}>
@@ -143,7 +146,11 @@ export default function ExercicioCard({ exId, n, p, item, sugestao, ultimo, onCh
 
       <details className="detalhes">
         <summary><ChevronDown size={16} /> Como fazer</summary>
-        {ex.musculo && <p className="muted small" style={{ margin: '10px 0 0' }}>Músculo: {ex.musculo}</p>}
+        {ex.musculo && (
+          <p className="muted small musculo" style={{ margin: '10px 0 0' }}>
+            <span className="musculo-marca" />Músculo: {ex.musculo}
+          </p>
+        )}
         <ul className="dicas">
           {ex.dicas.map((d) => <li key={d}><Check size={15} />{d}</li>)}
         </ul>

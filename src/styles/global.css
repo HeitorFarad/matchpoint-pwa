@@ -596,6 +596,42 @@ button {
   margin-top: 2px;
 }
 
+/* Ilustração do exercício (laranja: músculo · verde: movimento) */
+.ilustracao {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 12px;
+  background: #f7f6f2;
+  border-radius: 10px;
+}
+
+.ilustracao text {
+  font-family: inherit;
+  font-size: 8px;
+}
+
+.ilustracao.mini {
+  width: 84px;
+  margin: 0;
+  flex-shrink: 0;
+  border-radius: 6px;
+}
+
+.musculo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.musculo-marca {
+  width: 18px;
+  height: 6px;
+  border-radius: 3px;
+  background: #d85a30;
+  flex-shrink: 0;
+}
+
 /* Abertura (checklist) */
 .check-row {
   display: flex;

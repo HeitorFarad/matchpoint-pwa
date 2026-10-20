@@ -10,6 +10,7 @@ import { apagarRascunho, lerRascunho, rascunhoTemDados, salvarRascunho } from '.
 import { lerNumero, num } from '../lib/formatar'
 import PageHeader from '../components/PageHeader'
 import ExercicioCard, { itemCompleto } from '../components/ExercicioCard'
+import Ilustracao from '../components/Ilustracao'
 import TimerDescanso from '../components/TimerDescanso'
 import Confirmar from '../components/Confirmar'
 
@@ -86,6 +87,7 @@ function Abertura({ semana, itens, onChange }) {
                   <span className="nome" style={{ display: 'block' }}>{ex.nome}</span>
                   <span className="sub">{prescricao(id, semana).texto}</span>
                 </span>
+                <Ilustracao exId={id} className="mini" />
               </button>
               {id === 'joelho-parede' && (
                 <label className="extra" style={{ margin: '0 0 10px 38px' }}>
